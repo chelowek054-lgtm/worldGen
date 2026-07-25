@@ -1,0 +1,5 @@
+# Конфиг оценочного набора. Хеш набора (manifest.set_hash) логируется в прогон.
+manifest: data/golden_set/manifest.yaml
+
+# Порог перцептивного расстояния для детекта пересечений с train (гейт 0.1).
+overlap_threshold: 5

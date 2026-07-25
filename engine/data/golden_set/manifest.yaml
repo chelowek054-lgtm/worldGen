@@ -1,0 +1,22 @@
+# Манифест золотого набора (задача 0.1). Пути — относительно этого файла.
+# Наполняется по мере сбора; данные версионируются через DVC.
+version: 0
+
+# 20–50 объектов × 8 ракурсов. Категории: rigid | deformable | fine-detail.
+# Пример:
+#   - id: mug_01
+#     category: rigid
+#     views: [objects/mug_01/view_00.png, objects/mug_01/view_01.png]
+objects: []
+
+# 10–15 мультиобъектных сцен.
+#   - id: desk_01
+#     objects: [mug_01, book_03]
+#     layout: scenes/desk_01/layout.png
+scenes: []
+
+# 5–10 «физических» сюжетов: fall | stack | drape | submerge.
+#   - id: stack_01
+#     kind: stack
+#     clip: physics/stack_01/clip.mp4
+physics: []
