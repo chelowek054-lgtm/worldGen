@@ -1,0 +1,18 @@
+# Локальные артефакты ML-пайплайна (не коммитятся).
+# Виртуальное окружение и *.log уже покрыты корневым .gitignore.
+
+# Выходы прогонов, логи Hydra, трекинг MLflow
+runs/
+outputs/
+mlruns/
+mlartifacts/
+*.db
+
+# Данные и веса (версионируются через DVC/git-lfs, не напрямую)
+data/**
+!data/**/
+!data/**/*.dvc
+!data/**/README.md
+!data/**/.gitkeep
+datasets/
+checkpoints/

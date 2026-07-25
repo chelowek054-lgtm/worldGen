@@ -1,0 +1,71 @@
+[project]
+name = "worldgen-engine"
+version = "0.1.0"
+description = "World-Gen — нейросетевой движок генерации миров (ML-пайплайн)"
+requires-python = ">=3.12"
+dependencies = [
+    # Конфиги и воспроизводимость
+    "hydra-core>=1.3",
+    "omegaconf>=2.3",
+    # Трекинг экспериментов (бэкенд по умолчанию — MLflow, локально)
+    "mlflow>=2.16",
+    # Числодробилка и утилиты
+    "numpy>=1.26",
+    "pillow>=10.2",
+    "tqdm>=4.66",
+    "rich>=13.7",
+    # Бэкбон-фреймворк
+    "torch>=2.2",
+    "torchvision>=0.17",
+]
+
+[project.optional-dependencies]
+# Инструменты разработки
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+# Метрики и бэкбоны для фаз 0.1–0.2 (DINO/CLIP, FID, retrieval)
+eval = [
+    "transformers>=4.44",
+    "safetensors>=0.4",
+    "accelerate>=0.34",
+    "torchmetrics>=1.4",
+    "faiss-cpu>=1.8",
+]
+# Версионирование данных/весов (DVC)
+data = [
+    "dvc>=3.55",
+]
+# Генеративный стек (фаза 1+)
+gen = [
+    "diffusers>=0.30",
+    "peft>=0.12",
+]
+# Ускорение под CUDA (ставить на GPU-хосте)
+gpu = [
+    "xformers>=0.0.27",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["worldgen*"]
+
+# Единый стиль с backend: ruff line-length 100, py312, набор правил E/F/I/UP/B.
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true

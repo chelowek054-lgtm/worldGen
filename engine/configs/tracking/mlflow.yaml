@@ -1,0 +1,5 @@
+# Трекинг через MLflow, локально. tracking_uri=null → SQLite в engine/runs/mlflow.db,
+# артефакты — в engine/runs/mlartifacts.
+name: mlflow
+tracking_uri: null
+experiment_name: worldgen
