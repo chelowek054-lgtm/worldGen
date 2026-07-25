@@ -1,0 +1,4 @@
+{
+  // Nuxt генерирует настоящий конфиг в .nuxt/tsconfig.json.
+  "extends": "./.nuxt/tsconfig.json"
+}

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Плата для нейросетей с нуля — от рубежа XX века до вычислений-в-памяти</title>
+<style>
+  :root{
+    --bg:#f4efe4; --paper:#fffdf7; --ink:#231f19; --muted:#6d665a;
+    --accent:#ad6528; --accent2:#2c6e64; --near:#2f7d4f; --far:#b1442f;
+    --line:#e3dac8; --line2:#d3c8b2; --shadow:rgba(70,55,30,.10);
+    --grid:rgba(120,95,55,.09);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#181511; --paper:#211d17; --ink:#ece4d5; --muted:#a79e8c;
+      --accent:#d68a45; --accent2:#59b3a6; --near:#5fbf83; --far:#e0765c;
+      --line:#332c22; --line2:#3f382c; --shadow:rgba(0,0,0,.35);
+      --grid:rgba(190,160,110,.07);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.62; font-size:17px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:860px; margin:0 auto; padding:0 22px}
+  h1,h2,h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif; line-height:1.2; font-weight:600}
+  a{color:var(--accent)}
+
+  /* HERO */
+  header.hero{
+    position:relative; overflow:hidden;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,0) 60%, var(--bg) 100%),
+      repeating-linear-gradient(0deg, transparent, transparent 27px, var(--grid) 27px, var(--grid) 28px),
+      repeating-linear-gradient(90deg, transparent, transparent 27px, var(--grid) 27px, var(--grid) 28px);
+    border-bottom:1px solid var(--line);
+    padding:60px 0 44px;
+  }
+  .hero .wrap{position:relative; z-index:2}
+  .kicker{
+    display:inline-block; letter-spacing:.16em; text-transform:uppercase;
+    font-size:12px; color:var(--accent); font-weight:700; margin-bottom:16px;
+    border:1px solid var(--line2); border-radius:999px; padding:5px 13px; background:var(--paper);
+  }
+  header.hero h1{font-size:38px; margin:.1em 0 .35em; letter-spacing:-.01em}
+  header.hero p.lede{font-size:19px; color:var(--muted); max-width:640px; margin:0}
+  .crossbar{position:absolute; right:-40px; top:-10px; width:290px; height:290px; opacity:.5; z-index:1}
+  @media (max-width:720px){ .crossbar{display:none} header.hero h1{font-size:29px} }
+
+  /* THESIS CARD */
+  .thesis{
+    background:var(--paper); border:1px solid var(--line);
+    border-left:4px solid var(--accent); border-radius:12px;
+    padding:22px 24px; margin:34px 0; box-shadow:0 6px 22px var(--shadow);
+  }
+  .thesis strong{color:var(--accent)}
+
+  section{padding:14px 0}
+  h2.sec{font-size:26px; margin:46px 0 6px; padding-top:10px}
+  h2.sec .num{color:var(--accent); font-variant-numeric:tabular-nums; margin-right:.35em}
+  .sub{color:var(--muted); margin:.2em 0 1.2em; font-size:15.5px}
+
+  p{margin:0 0 16px}
+  .lead-in{font-weight:600}
+
+  /* comparison table */
+  .cmp{width:100%; border-collapse:collapse; margin:10px 0 26px; font-size:15.5px; background:var(--paper);
+    border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  .cmp th,.cmp td{padding:12px 14px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line)}
+  .cmp thead th{background:rgba(173,101,40,.09); font-family:Georgia,serif; font-size:15px}
+  .cmp tr:last-child td{border-bottom:none}
+  .cmp td:first-child{color:var(--muted); font-weight:600; width:26%}
+  .cmp .c-class{color:var(--accent2)}
+  .cmp .c-neur{color:var(--accent)}
+  @media (max-width:640px){ .cmp,.cmp thead,.cmp tbody,.cmp tr,.cmp th,.cmp td{display:block}
+    .cmp thead{display:none} .cmp td{border:none; padding:4px 14px}
+    .cmp td:first-child{padding-top:14px} .cmp tr{border-bottom:1px solid var(--line); padding:6px 0} }
+
+  /* TIMELINE */
+  .timeline{position:relative; margin:20px 0 10px; padding-left:34px}
+  .timeline::before{content:""; position:absolute; left:9px; top:6px; bottom:6px; width:2px;
+    background:linear-gradient(var(--accent), var(--line2)); border-radius:2px}
+  .era{position:relative; margin:0 0 30px}
+  .era::before{content:""; position:absolute; left:-30px; top:5px; width:16px; height:16px;
+    border-radius:50%; background:var(--paper); border:3px solid var(--accent); box-shadow:0 0 0 4px var(--bg)}
+  .era .yr{display:inline-block; font-family:Georgia,serif; font-weight:700; color:var(--accent);
+    font-size:14px; letter-spacing:.04em; margin-bottom:2px}
+  .era h3{font-size:20.5px; margin:2px 0 8px}
+  .card{background:var(--paper); border:1px solid var(--line); border-radius:12px;
+    padding:16px 18px 6px; box-shadow:0 4px 16px var(--shadow)}
+  .card p{margin:0 0 12px; font-size:16px}
+
+  /* weight-location badge */
+  .wl{display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600;
+    padding:6px 12px; border-radius:999px; margin:2px 0 14px; border:1px solid var(--line2)}
+  .wl svg{display:block}
+  .wl.near{color:var(--near); background:rgba(47,125,79,.10); border-color:rgba(47,125,79,.35)}
+  .wl.far{color:var(--far); background:rgba(177,68,47,.10); border-color:rgba(177,68,47,.35)}
+  .wl.mix{color:var(--accent); background:rgba(173,101,40,.10); border-color:rgba(173,101,40,.35)}
+
+  .tags{margin:0 0 12px}
+  .tag{display:inline-block; font-size:12px; color:var(--muted); background:var(--bg);
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; margin:0 6px 6px 0}
+  .garage{border-top:1px dashed var(--line2); margin-top:6px; padding-top:10px; font-size:15px; color:var(--ink)}
+  .garage b{color:var(--accent2); font-family:Georgia,serif}
+
+  /* build ladder */
+  .rung{display:flex; gap:16px; background:var(--paper); border:1px solid var(--line);
+    border-radius:12px; padding:16px 18px; margin:0 0 14px; box-shadow:0 4px 16px var(--shadow)}
+  .rung .n{flex:none; width:38px; height:38px; border-radius:50%; background:rgba(173,101,40,.12);
+    color:var(--accent); font-family:Georgia,serif; font-weight:700; font-size:19px;
+    display:flex; align-items:center; justify-content:center; border:1px solid var(--line2)}
+  .rung h3{margin:2px 0 6px; font-size:18px}
+  .rung p{margin:0 0 6px; font-size:15.5px}
+  .rung .echo{font-size:13px; color:var(--muted); font-style:italic}
+
+  .callout{background:linear-gradient(180deg, rgba(44,110,100,.08), rgba(44,110,100,.03));
+    border:1px solid var(--line); border-left:4px solid var(--accent2); border-radius:12px;
+    padding:18px 22px; margin:26px 0}
+  .callout h3{margin:0 0 8px; color:var(--accent2); font-size:19px}
+
+  footer{border-top:1px solid var(--line); margin-top:50px; padding:26px 0 60px; color:var(--muted); font-size:14px}
+  .src{font-size:13px}
+  .src a{color:var(--muted)}
+  hr.soft{border:none; border-top:1px solid var(--line); margin:30px 0}
+  .big-quote{font-family:Georgia,serif; font-size:21px; line-height:1.4; color:var(--ink); margin:30px 0; padding-left:18px; border-left:3px solid var(--accent)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <svg class="crossbar" viewBox="0 0 200 200" fill="none" stroke="var(--accent)" stroke-width="1.4">
+    <g opacity="0.9">
+      <line x1="20" y1="45" x2="185" y2="45"/><line x1="20" y1="85" x2="185" y2="85"/>
+      <line x1="20" y1="125" x2="185" y2="125"/><line x1="20" y1="165" x2="185" y2="165"/>
+      <line x1="45" y1="20" x2="45" y2="185"/><line x1="85" y1="20" x2="85" y2="185"/>
+      <line x1="125" y1="20" x2="125" y2="185"/><line x1="165" y1="20" x2="165" y2="185"/>
+    </g>
+    <g fill="var(--accent)" stroke="none">
+      <circle cx="45" cy="45" r="5"/><circle cx="85" cy="45" r="3"/><circle cx="125" cy="45" r="4.5"/><circle cx="165" cy="45" r="2.5"/>
+      <circle cx="45" cy="85" r="3"/><circle cx="85" cy="85" r="5"/><circle cx="125" cy="85" r="2.5"/><circle cx="165" cy="85" r="4"/>
+      <circle cx="45" cy="125" r="4.5"/><circle cx="85" cy="125" r="2.5"/><circle cx="125" cy="125" r="5"/><circle cx="165" cy="125" r="3"/>
+      <circle cx="45" cy="165" r="2.5"/><circle cx="85" cy="165" r="4"/><circle cx="125" cy="165" r="3"/><circle cx="165" cy="165" r="5"/>
+    </g>
+  </svg>
+  <div class="wrap">
+    <span class="kicker">Гаражный журнал · с нуля · ~1900 → сегодня</span>
+    <h1>Плата для нейросетей своими руками</h1>
+    <p class="lede">История железа для ИИ как один сюжет — от механических реле до мемристорных кроссбаров, увиденная через одну идею: <em>веса должны жить там же, где идёт вычисление.</em></p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="thesis">
+    <p style="margin-bottom:10px">Ты задал две рамки, и они оказались двумя сторонами одной монеты.</p>
+    <p style="margin-bottom:10px"><strong>Рамка 1 — веса рядом с вычислением.</strong> Это не мелкая оптимизация, а водораздел всей архитектуры. Как только память и вычислитель разъезжаются, появляется «стена памяти»: чип простаивает, гоняя веса туда-сюда по шине.</p>
+    <p style="margin-bottom:0"><strong>Рамка 2 — классика против нейросети.</strong> Два способа взять нелинейную задачу. И именно выбор способа диктует, разъедутся веса с вычислителем или нет. Дальше — вся история как маятник между этими полюсами.</p>
+  </div>
+
+  <section>
+    <h2 class="sec">Два способа решить нелинейную задачу</h2>
+    <p class="sub">С этого развилка и начинается всё железо. Держим её в голове, спускаясь по годам.</p>
+
+    <p>Возьмём любую нелинейную задачу — распознать цифру, предсказать траекторию, отделить «да» от «нет», когда граница кривая. Есть ровно два пути, и они расходятся до самого кремния.</p>
+
+    <p><span class="lead-in">Классический путь.</span> Человек <em>сам</em> выводит алгоритм и записывает его как инструкции. Универсальная машина (по фон Нейману) достаёт инструкции и данные из общей памяти, прогоняет через один арифметический блок и возвращает результат в память. Нелинейность берётся «руками»: ветвлениями <code>if</code>, численными методами, формулами. Машина одна на всё — но данные вечно ездят между памятью и вычислителем.</p>
+
+    <p><span class="lead-in">Нейросетевой путь.</span> Ты <em>не пишешь</em> алгоритм. Ты собираешь сеть простых узлов, каждый из которых умеет одно: взвешенно сложить входы и пропустить сумму через нелинейную функцию (порог, сигмоида). «Программа» — это набор весов на связях, и он не пишется, а <em>обучается</em> на примерах. Нелинейность встроена в каждый узел; сложи слои — и получишь универсальный аппроксиматор любой кривой границы.</p>
+
+    <p>А теперь ключевое следствие для железа. Нейросети — это, по сути, одно гигантское умножение матриц: «вектор входов × матрица весов». Если веса лежат в далёкой памяти, ты обречён их бесконечно подвозить. Если же веса физически сидят в точке умножения — вычисление происходит <em>там, где они лежат</em>, и подвозить нечего. Поэтому «настоящее» нейросетевое железо всегда тянется обратно к аналоговому синапсу, а классическое — к фон-неймановскому разделению.</p>
+
+    <table class="cmp">
+      <thead><tr><th>Вопрос</th><th class="c-class">Классическое программирование</th><th class="c-neur">Нейросетевой подход</th></tr></thead>
+      <tbody>
+        <tr><td>Кто находит решение</td><td class="c-class">человек пишет алгоритм</td><td class="c-neur">сеть учится на примерах</td></tr>
+        <tr><td>Где «программа»</td><td class="c-class">инструкции в памяти</td><td class="c-neur">веса связей</td></tr>
+        <tr><td>Откуда нелинейность</td><td class="c-class">явная математика, ветвления</td><td class="c-neur">функция активации в каждом узле + слои</td></tr>
+        <tr><td>Железо тяготеет к…</td><td class="c-class">фон Нейман: память ≠ вычислитель</td><td class="c-neur">веса внутри вычислителя</td></tr>
+        <tr><td>Узкое место</td><td class="c-class">стена памяти (шина)</td><td class="c-neur">шум и точность аналоговой ячейки</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2 class="sec">Вся история — поэтапно</h2>
+    <p class="sub">У каждой эпохи смотрим три вещи: наука, железо и — где в этот момент живут веса относительно вычислителя. Плюс гаражная сноска: что реально спаять на верстаке той поры.</p>
+
+    <div style="display:flex; gap:16px; flex-wrap:wrap; margin:6px 0 24px; font-size:13px; color:var(--muted)">
+      <span class="wl near" style="margin:0"><svg width="34" height="14"><circle cx="9" cy="7" r="5" fill="var(--near)"/><circle cx="25" cy="7" r="5" fill="var(--near)"/><line x1="9" y1="7" x2="25" y2="7" stroke="var(--near)" stroke-width="2"/></svg>веса в вычислителе</span>
+      <span class="wl far" style="margin:0"><svg width="46" height="14"><circle cx="7" cy="7" r="5" fill="var(--far)"/><circle cx="39" cy="7" r="5" fill="none" stroke="var(--far)" stroke-width="2"/><line x1="12" y1="7" x2="34" y2="7" stroke="var(--far)" stroke-width="1.5" stroke-dasharray="3 3"/></svg>веса далеко от вычислителя</span>
+    </div>
+
+    <div class="timeline">
+
+      <!-- PROLOGUE -->
+      <div class="era">
+        <div class="yr">≈ 1900 · Пролог</div>
+        <h3>Мир без электроники</h3>
+        <div class="card">
+          <span class="wl near"><svg width="34" height="14"><circle cx="9" cy="7" r="5" fill="var(--near)"/><circle cx="25" cy="7" r="5" fill="var(--near)"/><line x1="9" y1="7" x2="25" y2="7" stroke="var(--near)" stroke-width="2"/></svg>у аналоговой машины «память» и «счёт» всегда слиты</span>
+          <p>На верстаке 1900 года нет ни транзистора, ни цифрового компьютера. Есть шестерни, рычаги, батареи, электромагниты и телеграфные реле. Булева алгебра существует на бумаге (Буль, 1854), но не в железе. Вычисление бывает двух сортов: <em>механико-классическое</em> (арифмометр крутит числа) и <em>физико-аналоговое</em> — машина, чья физика <em>сама есть</em> уравнение. Приливная машина Кельвина складывает синусоиды шестернями; в ней «параметр» (амплитуда гармоники) задан размером колеса — то есть память слита с вычислением. Это первый намёк на всю нашу тему.</p>
+          <div class="tags"><span class="tag">реле и электромагниты</span><span class="tag">аналоговая механика</span><span class="tag">нейрона ещё нет как понятия</span></div>
+          <div class="garage"><b>В гараже:</b> максимум — релейная логическая схемка или механический сумматор на резисторах и гальванометре. Усиливать сигнал ещё нечем — и это главный тормоз.</div>
+        </div>
+      </div>
+
+      <!-- STAGE 1 -->
+      <div class="era">
+        <div class="yr">1904 – 1918 · Этап 1</div>
+        <h3>Радиолампа: появляются усиление и порог</h3>
+        <div class="card">
+          <span class="wl mix"><svg width="18" height="14"><circle cx="9" cy="7" r="5" fill="var(--accent)"/></svg>общий корень обеих ветвей</span>
+          <p>Диод Флеминга (1904) и триод Де Фореста (1906) впервые дают <em>усиливать</em> и <em>переключать</em> электрический сигнал. Это разом предпосылка и для цифровой логики, и для аналоговых нейро-схем: лампа умеет и щёлкать как ключ, и работать нелинейным пороговым элементом. В 1918-м Экклз и Джордан собирают триггер — первую электронную ячейку памяти. Ветвь ещё одна, но из неё уже растут обе будущие.</p>
+          <div class="tags"><span class="tag">триод — усиление</span><span class="tag">триггер — память</span><span class="tag">нелинейный порог «даром»</span></div>
+          <div class="garage"><b>В гараже:</b> ламповый усилитель, генератор, а к концу этапа — триггер. Уже можно построить ламповый «нейрон»: сумма на резисторах + лампа как порог.</div>
+        </div>
+      </div>
+
+      <!-- STAGE 2 -->
+      <div class="era">
+        <div class="yr">1931 – 1945 · Этап 2</div>
+        <h3>Две парадигмы рождаются на бумаге</h3>
+        <div class="card">
+          <span class="wl far"><svg width="46" height="14"><circle cx="7" cy="7" r="5" fill="var(--far)"/><circle cx="39" cy="7" r="5" fill="none" stroke="var(--far)" stroke-width="2"/><line x1="12" y1="7" x2="34" y2="7" stroke="var(--far)" stroke-width="1.5" stroke-dasharray="3 3"/></svg>фон Нейман узаконивает разрыв памяти и счёта</span>
+          <p><span class="lead-in">Классическая ветвь.</span> Тьюринг (1936) описывает универсальную машину; Шеннон (1937) показывает, что булеву алгебру можно собрать из реле — рождается цифровая схемотехника; аналоговый дифференциальный анализатор Буша (1931) решает нелинейные дифуравнения физическим интегрированием. В 1945-м отчёт фон Неймана по EDVAC закрепляет архитектуру с общей памятью для программы и данных. Для обычных задач — гениально. Для будущих нейросетей — <em>первородный грех</em>: память и вычислитель разведены, и через полвека это станет стеной памяти.</p>
+          <p><span class="lead-in">Нейронная ветвь.</span> Маккаллок и Питтс (1943) дают первую математическую модель нейрона — пороговый логический элемент — и показывают, что сети таких узлов вычисляют логические функции. Понятие «нейрон в железе» родилось.</p>
+          <div class="tags"><span class="tag">Тьюринг · Шеннон</span><span class="tag">фон-неймановская архитектура</span><span class="tag">нейрон Маккаллока–Питтса</span></div>
+          <div class="garage"><b>В гараже:</b> релейный или ламповый сумматор-с-порогом — физический нейрон Маккаллока–Питтса. Веса пока «зашиты» номиналами резисторов вручную.</div>
+        </div>
+      </div>
+
+      <!-- STAGE 3 -->
+      <div class="era">
+        <div class="yr">1949 – 1960 · Этап 3</div>
+        <h3>Первое нейро-железо — и веса живут прямо в синапсе</h3>
+        <div class="card">
+          <span class="wl near"><svg width="34" height="14"><circle cx="9" cy="7" r="5" fill="var(--near)"/><circle cx="25" cy="7" r="5" fill="var(--near)"/><line x1="9" y1="7" x2="25" y2="7" stroke="var(--near)" stroke-width="2"/></svg>каждый вес — физическая деталь в точке связи</span>
+          <p>Это золотой век твоей идеи. Хебб (1949) формулирует правило обучения: связь усиливается, когда узлы активны вместе. И дальше веса начинают <em>материализоваться</em>.</p>
+          <p><span class="lead-in">SNARC</span> (Минский и Эдмондс, 1951) — первая нейросетевая машина: ~40 синапсов, 300 радиоламп, моторы, электромагнитные муфты и конденсаторы; вес каждого синапса хранится как заряд на конденсаторе и положение муфты — прямо в синапсе. Училась подкреплением, размером с рояль, собрана в т.ч. из автопилота бомбардировщика B-24.</p>
+          <p><span class="lead-in">Перцептрон Mark I</span> (Розенблатт, публичная демонстрация 23 июня 1960) — 400 фотоэлементов сеткой 20×20 («сетчатка»), 512 ассоциативных узлов, 8 выходов. Веса хранятся в <em>потенциометрах</em>, а при обучении их крутят <em>электромоторы</em>. Вес — это буквально угол ручки в узле связи.</p>
+          <p><span class="lead-in">ADALINE / мемистор</span> (Уидроу и Хофф, 1960). Мемистор — электрохимическая ячейка: её проводимость (от 100 до 1 Ом) задаётся интегралом протёкшего тока, то есть <em>вес хранится как проводимость там же, где идёт умножение</em>. Это, по сути, мемристор за 11 лет до теории и прямой предок современного кроссбара.</p>
+          <div class="tags"><span class="tag">Хебб · обучение</span><span class="tag">потенциометры + моторы</span><span class="tag">мемистор = вес как проводимость</span></div>
+          <div class="garage"><b>В гараже:</b> самый «собираемый» нейрокомпьютер за всю историю. Фотоэлементы, горсть потенциометров (веса), сумма токов на операционнике, компаратор (порог) — рабочий перцептрон на макетке. Именно с этого мы и стартуем ниже.</div>
+        </div>
+      </div>
+
+      <!-- STAGE 4 -->
+      <div class="era">
+        <div class="yr">1969 – ≈1980 · Этап 4</div>
+        <h3>Первая зима: спотыкаемся о нелинейность</h3>
+        <div class="card">
+          <span class="wl far"><svg width="46" height="14"><circle cx="7" cy="7" r="5" fill="var(--far)"/><circle cx="39" cy="7" r="5" fill="none" stroke="var(--far)" stroke-width="2"/><line x1="12" y1="7" x2="34" y2="7" stroke="var(--far)" stroke-width="1.5" stroke-dasharray="3 3"/></svg>победа классики → всё уходит в фон-неймановские машины</span>
+          <p>Минский и Паперт в книге «Perceptrons» (1969) доказывают: однослойный перцептрон не может решить XOR — задачу, где классы нельзя разделить прямой. Нужны скрытые слои с нелинейностью, но учить их ещё не умеют. Финансирование пересыхает — первая «зима ИИ». На авансцену выходит классическая, символьная ветвь: экспертные системы решают задачи явными правилами на обычных цифровых машинах. Развилка «классика против нейросети» из абзаца в начале — вот она, в виде реального исторического поворота, и в 70-е выигрывает классика.</p>
+          <div class="tags"><span class="tag">проблема XOR</span><span class="tag">нужны скрытые слои</span><span class="tag">символьный ИИ / экспертные системы</span></div>
+          <div class="garage"><b>В гараже:</b> эпоха микропроцессора (Intel 4004, 1971). Проще купить готовый цифровой чип и писать <em>алгоритмы</em>, чем паять аналоговые синапсы. Веса-в-железе временно забыты.</div>
+        </div>
+      </div>
+
+      <!-- STAGE 5 -->
+      <div class="era">
+        <div class="yr">1974 – 1990-е · Этап 5</div>
+        <h3>Обратное распространение и аналоговый VLSI-ренессанс</h3>
+        <div class="card">
+          <span class="wl near"><svg width="34" height="14"><circle cx="9" cy="7" r="5" fill="var(--near)"/><circle cx="25" cy="7" r="5" fill="var(--near)"/><line x1="9" y1="7" x2="25" y2="7" stroke="var(--near)" stroke-width="2"/></svg>веса возвращаются в кремний — как заряд на затворе</span>
+          <p><span class="lead-in">Ключ к нелинейности найден.</span> Метод обратного распространения (Вербос, 1974; прославлен Румельхартом, Хинтоном и Уильямсом, 1986) позволяет обучать многослойные сети — и XOR, и куда более сложные кривые границы становятся по зубам. Сеть Хопфилда (1982) и неокогнитрон Фукусимы (1980) возвращают интерес; ЛеКун собирает LeNet — свёрточную сеть для распознавания цифр (1989).</p>
+          <p><span class="lead-in">И снова веса в вычислителе.</span> Карвер Мид создаёт нейроморфную инженерию и книгу «Analog VLSI and Neural Systems» (1989): аналоговый кремний, где память и счёт совмещены, как в биологии, и всё это ест микроватты. Intel выпускает <span class="lead-in">ETANN 80170NX</span> (1989) — 64 аналоговых нейрона и 10 240 синапсов на <em>плавающих затворах</em>: вес хранится как заряд прямо в синапсе, умножение делает аналоговый перемножитель Гилберта, а суммирование — просто общий провод (закон Кирхгофа). Скорость — 2 млрд соединений в секунду, без единого обращения к внешней памяти.</p>
+          <div class="tags"><span class="tag">backprop учит слои</span><span class="tag">Карвер Мид · нейроморфика</span><span class="tag">ETANN: веса на плавающем затворе</span></div>
+          <div class="garage"><b>В гараже:</b> аналоговый VLSI не спаяешь, но принцип — да: op-amp'ы, аналоговые перемножители, конденсаторы/цифровые потенциометры как веса. Малый аналоговый синапс собирается на столе.</div>
+        </div>
+      </div>
+
+      <!-- STAGE 6 -->
+      <div class="era">
+        <div class="yr">1990-е – 2012 · Этап 6</div>
+        <h3>Цифровой брутфорс и Стена Памяти</h3>
+        <div class="card">
+          <span class="wl far"><svg width="46" height="14"><circle cx="7" cy="7" r="5" fill="var(--far)"/><circle cx="39" cy="7" r="5" fill="none" stroke="var(--far)" stroke-width="2"/><line x1="12" y1="7" x2="34" y2="7" stroke="var(--far)" stroke-width="1.5" stroke-dasharray="3 3"/></svg>веса в DRAM — максимально далеко от АЛУ</span>
+          <p>Пока нейросети переживают вторую зиму, закон Мура делает <em>цифровые</em> фон-неймановские машины бешено быстрыми и дешёвыми. Прагматика побеждает: нейросеть проще гонять как софт — перемножение матриц — на обычном цифровом железе. Веса переезжают в DRAM, далеко от арифметики. Именно тогда Вульф и Макки формулируют «стену памяти» (1994): разрыв между быстрым счётом и медленной памятью растёт и становится главным тормозом. Ирония в чистом виде — нейросети крутят на архитектуре, которая для них худшая.</p>
+          <p>Спасение приходит сбоку: видеокарты. GPU массово-параллельны и рождены перемножать матрицы; с CUDA (2006–2007) их можно программировать не только для графики. В 2006-м Хинтон переобувает «глубокие сети» в бренд <em>deep learning</em>, а в 2012-м AlexNet на двух GPU разносит ImageNet — и всё взрывается.</p>
+          <div class="tags"><span class="tag">закон Мура</span><span class="tag">стена памяти (1994)</span><span class="tag">GPU + CUDA</span><span class="tag">AlexNet, 2012</span></div>
+          <div class="garage"><b>В гараже:</b> покупаешь видеокарту и пишешь на CUDA. Порог входа — минимальный, эффективность на ватт — так себе: ты платишь за подвоз весов.</div>
+        </div>
+      </div>
+
+      <!-- STAGE 7 -->
+      <div class="era">
+        <div class="yr">2013 – 2020 · Этап 7</div>
+        <h3>Доменные ускорители: тянем данные обратно к счёту</h3>
+        <div class="card">
+          <span class="wl mix"><svg width="18" height="14"><circle cx="9" cy="7" r="5" fill="var(--accent)"/></svg>компромисс: большой SRAM/HBM держит веса рядом (но ещё в цифре)</span>
+          <p>Раз стена памяти — главный враг, чипы начинают проектировать <em>вокруг</em> неё. Google TPU (внутри с ~2015, статья 2017) — это большой систолический массив умножителей с крупной памятью SRAM прямо на кристалле: данные текут сквозь решётку, максимально переиспользуются и почти не ездят наружу. Память HBM (стек прямо на корпусе, ~2013) подтаскивает DRAM физически ближе. Дальше — кембрийский взрыв: Cerebras (процессор во всю пластину, гигантский on-chip SRAM), Graphcore, Groq, нейродвижки в телефонах. Общий мотив один — держи данные ближе к счёту.</p>
+          <div class="tags"><span class="tag">систолический массив (TPU)</span><span class="tag">HBM ближе к чипу</span><span class="tag">Cerebras · Graphcore · NPU</span></div>
+          <div class="garage"><b>В гараже:</b> здесь появляется твой инструмент — FPGA. На ней можно собрать маленький систолический массив (по сути «TPU на коленке») и своими глазами увидеть борьбу со стеной памяти в цифре.</div>
+        </div>
+      </div>
+
+      <!-- STAGE 8 -->
+      <div class="era">
+        <div class="yr">2008 → сегодня · Этап 8</div>
+        <h3>Полный круг: вычисления прямо в памяти</h3>
+        <div class="card">
+          <span class="wl near"><svg width="34" height="14"><circle cx="9" cy="7" r="5" fill="var(--near)"/><circle cx="25" cy="7" r="5" fill="var(--near)"/><line x1="9" y1="7" x2="25" y2="7" stroke="var(--near)" stroke-width="2"/></svg>вес = проводимость ячейки; умножение идёт в ней самой</span>
+          <p>Чуа ещё в 1971-м предсказал «мемристор» — недостающий четвёртый элемент цепи, связывающий заряд и поток. В 2008-м HP делает его физически (плёнка TiO₂). И тут всё сходится.</p>
+          <p>Мемристорный (или ReRAM/PCM) <span class="lead-in">кроссбар</span>: в каждой точке пересечения — ячейка, чья проводимость <em>и есть</em> вес. Подаёшь входы напряжениями на строки. По закону Ома ток в ячейке = напряжение × проводимость — это умножение. По закону Кирхгофа токи на столбце складываются сами собой — это накопление. Всё перемножение «вектор × матрица» происходит <em>за один физический шаг там, где лежат веса</em>, почти без движения данных. Это и есть предел твоей идеи — и это буквально воскресший мемистор Уидроу 1960 года, только в нанометрах. В железе это уже везде: Mythic (аналоговый счёт на флеш-памяти), аналоговый ИИ у IBM (фазовая память), десятки исследовательских ReRAM-ускорителей, плюс compute-in-memory на обычном SRAM.</p>
+          <div class="tags"><span class="tag">мемристор: Чуа 1971 → HP 2008</span><span class="tag">Ом = умножение, Кирхгоф = сумма</span><span class="tag">Mythic · IBM analog AI</span></div>
+          <div class="garage"><b>В гараже:</b> кроссбар из потенциометров/резисторов на макетке — это работающая демонстрация ровно этого принципа. Мы соберём её следующей.</div>
+        </div>
+      </div>
+
+    </div><!-- /timeline -->
+  </section>
+
+  <div class="callout">
+    <h3>Дуга целиком, в одном предложении</h3>
+    <p style="margin:0">Первые нейромашины (перцептрон, ADALINE) хранили веса <em>физически в синапсе</em>, в аналоге, — потому что так естественно. Фон Нейман развёл память и счёт и подарил нам полвека цифрового прогресса, но и стену памяти. А сейчас мы возвращаемся к весам-в-точке-умножения — теперь в наноприборах. Твой инстинкт «держать веса у вычислителя» — это и есть вся эта дуга, свёрнутая в одну мысль.</p>
+  </div>
+
+  <section>
+    <h2 class="sec">Собираем в гараже — сегодня, с нуля</h2>
+    <p class="sub">Не повторяем ошибку «сразу заказать кремний». Идём по лестнице, где каждая ступень воспроизводит свою эпоху и добавляет ровно одну идею.</p>
+
+    <p>Сердце всего — <span class="lead-in">аналоговый перемножитель «вектор × матрица» на кроссбаре</span>. Он же — перцептрон Розенблатта, он же — принцип мемристорного чипа. Собирается из деталей, доступных ещё в 1960-х:</p>
+
+    <div class="callout" style="border-left-color:var(--accent)">
+      <h3 style="color:var(--accent)">Ядро: аналоговый кроссбар на потенциометрах</h3>
+      <p style="margin:0 0 8px"><b>Входы</b> — напряжения на горизонтальных проводах (строках). <b>Веса</b> — проводимость в каждом пересечении: потенциометр (а хочешь ближе к истории — мотор его крутит, как в Mark I; хочешь удобнее — цифровой потенциометр под управлением МК).</p>
+      <p style="margin:0 0 8px"><b>Умножение</b> делает закон Ома: ток через ячейку = напряжение строки × проводимость. <b>Сложение</b> делает закон Кирхгофа: токи на вертикальном проводе (столбце) суммируются сами. Операционник на конце столбца превращает суммарный ток в выходное напряжение — это готовый скалярный продукт, то есть строка матрицы весов, умноженная на вход.</p>
+      <p style="margin:0 0 8px"><b>Знак весов</b> — как в ETANN и современных кроссбарах: пара проводимостей G⁺ и G⁻, их разность даёт минус. <b>Нелинейность</b> — компаратор (жёсткий порог, классический перцептрон) или диод/транзистор (мягкая кривая типа сигмоиды/ReLU). Без неё слои схлопнутся в одну прямую — тот самый урок XOR.</p>
+      <p style="margin:0"><b>Обучение</b> — правило Уидроу–Хоффа (LMS): подкручиваешь проводимости в сторону уменьшения ошибки. Руками, мотором или цифровым потенциометром от микроконтроллера.</p>
+    </div>
+
+    <p>Физически это и есть мемристорный кроссбар, собранный из деталей эпохи ADALINE: веса лежат ровно в точке умножения, данные никуда не ездят. Дальше — просто наращиваем реализм:</p>
+
+    <div class="rung">
+      <div class="n">1</div>
+      <div>
+        <h3>Аналоговый перцептрон на макетке</h3>
+        <p>Потенциометры-веса + сумма на операционнике + компаратор. Обучи правилу LMS решать линейную задачу, потом добавь скрытый слой и возьми XOR.</p>
+        <div class="echo">≈ Перцептрон и ADALINE, 1958–1960. Чувствуешь на пальцах: веса = проводимость.</div>
+      </div>
+    </div>
+    <div class="rung">
+      <div class="n">2</div>
+      <div>
+        <h3>Микроконтроллер + цифровые потенциометры</h3>
+        <p>МК подаёт входы, читает выход через АЦП и сам крутит цифровые потенциометры по правилу обучения. Аналоговый счёт — но автоматическое обучение.</p>
+        <div class="echo">≈ Дух ETANN, 1989: перезаписываемые аналоговые веса в синапсе.</div>
+      </div>
+    </div>
+    <div class="rung">
+      <div class="n">3</div>
+      <div>
+        <h3>FPGA — маленький цифровой TPU</h3>
+        <p>Опиши на Verilog/Chisel систолический массив умножителей-с-накоплением и держи веса в блочном SRAM на кристалле. Здесь ты лбом почувствуешь стену памяти и научишься с ней драться.</p>
+        <div class="echo">≈ TPU и доменные ускорители, 2015+. Цифра, но данные близко.</div>
+      </div>
+    </div>
+    <div class="rung">
+      <div class="n">4</div>
+      <div>
+        <h3>Готовый комплект вычислений-в-памяти</h3>
+        <p>Отладочные платы на ReRAM/PCM или аналоговом флеше (analog-AI киты) — настоящий современный кроссбар без своей фабрики. Тот же принцип ступени 1, но в нанометрах и всерьёз.</p>
+        <div class="echo">≈ Mythic, IBM analog AI, 2020-е. Полный круг замкнулся.</div>
+      </div>
+    </div>
+    <div class="rung">
+      <div class="n">5</div>
+      <div>
+        <h3>И только теперь — мечтать о своём кремнии</h3>
+        <p>Свой ASIC/чиплет — это миллионы долларов, годы и tape-out. К нему идут, когда ступени 1–4 уже доказали и архитектуру, и — критично — программный стек (компилятор из PyTorch в твоё железо). Софт решает не меньше кремния: экосистема CUDA — вот что сделало NVIDIA непобедимой.</p>
+        <div class="echo">≈ Собственно «своя плата для нейросетей». Финал, а не старт.</div>
+      </div>
+    </div>
+
+    <p class="big-quote">Побеждает не тот, у кого больше вычислителей, а тот, у кого веса не ездят по шине и кого удобно программировать. Стартуй от нагрузки и от весов-в-точке-счёта — кремний закладывай последним.</p>
+  </section>
+
+  <footer>
+    <p style="margin-bottom:14px"><b>Гаражный журнал.</b> Составлено как единый сюжет: наука → железо → где живут веса, от ~1900 до вычислений-в-памяти. Даты и технические детали сверены по источникам ниже.</p>
+    <p class="src">Источники:
+      <a href="https://en.wikipedia.org/wiki/Perceptron">Mark I Perceptron — Wikipedia</a> ·
+      <a href="https://en.wikipedia.org/wiki/Memistor">Memistor (Widrow) — Wikipedia</a> ·
+      <a href="https://en.wikipedia.org/wiki/Stochastic_Neural_Analog_Reinforcement_Calculator">SNARC — Wikipedia</a> ·
+      <a href="https://en.wikichip.org/wiki/intel/etann">Intel ETANN 80170NX — WikiChip</a> ·
+      <a href="https://computerhistory.org/blog/neural-network-chip-joins-the-collection/">ETANN — Computer History Museum</a> ·
+      <a href="https://en.wikipedia.org/wiki/Neuromorphic_computing">Neuromorphic computing / Carver Mead — Wikipedia</a> ·
+      <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9756267/">Memristive in-memory computing — PMC</a> ·
+      <a href="https://no-1.pro/research/15-compute-in-memory/">Compute-in-memory: Ohm's & Kirchhoff's laws</a>
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>

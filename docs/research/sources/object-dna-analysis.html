@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ДНК объектов: консистентность в DiT/VLM без полной 3D — анализ и дешёвый прототип</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --paper:#ffffff; --ink:#191c22; --muted:#5a6472;
+    --accent:#5b54e8; --accent2:#0e9488; --ok:#15803d; --warn:#c2410c; --mid:#b45309;
+    --line:#e5e8ee; --line2:#d5dae3; --code:#f0f2f6; --shadow:rgba(30,35,60,.07);
+    --grid:rgba(91,84,232,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e1117; --paper:#161a22; --ink:#e7eaf0; --muted:#9aa4b3;
+      --accent:#8f88ff; --accent2:#2dd4bf; --ok:#4ade80; --warn:#fb923c; --mid:#fbbf24;
+      --line:#242b37; --line2:#313a49; --code:#1b212c; --shadow:rgba(0,0,0,.35);
+      --grid:rgba(143,136,255,.07);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink); line-height:1.62; font-size:16.5px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:880px; margin:0 auto; padding:0 22px}
+  h1,h2,h3,h4{line-height:1.22; font-weight:700; letter-spacing:-.01em}
+  code,.mono{font-family:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace}
+  code{background:var(--code); padding:1.5px 6px; border-radius:5px; font-size:.86em}
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  em{font-style:normal; color:var(--accent); font-weight:600}
+
+  header.hero{position:relative; overflow:hidden; border-bottom:1px solid var(--line);
+    background:
+      linear-gradient(180deg,rgba(0,0,0,0) 55%,var(--bg) 100%),
+      repeating-linear-gradient(0deg,transparent,transparent 25px,var(--grid) 25px,var(--grid) 26px),
+      repeating-linear-gradient(90deg,transparent,transparent 25px,var(--grid) 25px,var(--grid) 26px);
+    padding:52px 0 40px}
+  .hero .wrap{position:relative; z-index:2}
+  .kick{display:inline-block; font-size:11.5px; letter-spacing:.15em; text-transform:uppercase;
+    color:var(--accent); font-weight:700; border:1px solid var(--line2); background:var(--paper);
+    border-radius:999px; padding:5px 13px; margin-bottom:15px}
+  .hero h1{font-size:34px; margin:.15em 0 .4em}
+  .hero p.lede{font-size:18px; color:var(--muted); max-width:660px; margin:0}
+  .diagram{position:absolute; right:-20px; top:26px; width:280px; opacity:.85; z-index:1}
+  @media (max-width:760px){ .diagram{display:none} .hero h1{font-size:27px} }
+
+  .toc{display:flex; flex-wrap:wrap; gap:8px; margin:26px 0 6px}
+  .toc a{font-size:13px; color:var(--muted); border:1px solid var(--line); background:var(--paper);
+    border-radius:999px; padding:5px 12px}
+  .toc a:hover{border-color:var(--accent); color:var(--accent); text-decoration:none}
+
+  section{padding:8px 0}
+  h2.sec{font-size:24px; margin:44px 0 4px; padding-top:12px}
+  h2.sec .n{color:var(--accent); font-variant-numeric:tabular-nums; margin-right:.4em; font-size:19px}
+  .sub{color:var(--muted); font-size:15px; margin:.25em 0 1.1em}
+  p{margin:0 0 15px}
+  .li{font-weight:700}
+
+  .tldr{background:var(--paper); border:1px solid var(--line); border-radius:14px;
+    padding:6px 24px 10px; margin:30px 0; box-shadow:0 8px 26px var(--shadow); border-top:4px solid var(--accent)}
+  .tldr h3{font-size:15px; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); margin:18px 0 12px}
+  .tldr dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:9px 16px}
+  .tldr dt{font-weight:700; color:var(--ink); white-space:nowrap}
+  .tldr dd{margin:0; color:var(--muted); font-size:15.5px}
+  @media (max-width:560px){ .tldr dl{grid-template-columns:1fr; gap:2px 0} .tldr dd{margin-bottom:8px} }
+
+  .callout{border:1px solid var(--line); border-left:4px solid var(--accent2); border-radius:12px;
+    padding:16px 20px; margin:22px 0; background:linear-gradient(180deg,rgba(14,148,136,.06),rgba(14,148,136,.02))}
+  .callout.warn{border-left-color:var(--warn); background:linear-gradient(180deg,rgba(194,65,12,.06),rgba(194,65,12,.02))}
+  .callout.go{border-left-color:var(--ok); background:linear-gradient(180deg,rgba(21,128,61,.07),rgba(21,128,61,.02))}
+  .callout h3{margin:0 0 8px; font-size:17px}
+  .callout.warn h3{color:var(--warn)} .callout.go h3{color:var(--ok)} .callout h3{color:var(--accent2)}
+  .callout p:last-child{margin-bottom:0}
+
+  /* spectrum levels */
+  .lvl{display:flex; gap:15px; align-items:flex-start; background:var(--paper); border:1px solid var(--line);
+    border-radius:12px; padding:14px 16px; margin:0 0 11px; box-shadow:0 4px 14px var(--shadow)}
+  .lvl.here{border-color:var(--accent); box-shadow:0 6px 20px rgba(91,84,232,.16); border-width:1.5px}
+  .lvl .ln{flex:none; width:34px; height:34px; border-radius:9px; background:var(--code); color:var(--muted);
+    font-weight:700; display:flex; align-items:center; justify-content:center; font-variant-numeric:tabular-nums}
+  .lvl.here .ln{background:var(--accent); color:#fff}
+  .lvl h4{margin:2px 0 5px; font-size:16px}
+  .lvl p{margin:0; font-size:14.5px; color:var(--muted)}
+  .lvl .bars{margin-top:8px; display:flex; gap:14px; font-size:11.5px; color:var(--muted); flex-wrap:wrap}
+  .bars b{color:var(--ink); font-weight:600}
+  .pill{display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:6px; vertical-align:middle}
+  .pill.mid{background:rgba(180,83,9,.14); color:var(--mid)}
+  .pill.up{background:rgba(91,84,232,.14); color:var(--accent)}
+
+  table{width:100%; border-collapse:collapse; margin:12px 0 22px; font-size:14.5px;
+    background:var(--paper); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  th,td{padding:10px 13px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line)}
+  thead th{background:rgba(91,84,232,.07); font-size:13.5px}
+  tr:last-child td{border-bottom:none}
+  td.c{text-align:center; white-space:nowrap}
+  .froze{color:var(--accent2); font-weight:700} .train{color:var(--warn); font-weight:700}
+  @media (max-width:640px){ table{font-size:13px} th,td{padding:8px 9px} }
+
+  pre{background:var(--code); border:1px solid var(--line); border-radius:12px; padding:15px 17px;
+    overflow-x:auto; font-size:13px; line-height:1.6; margin:16px 0}
+  pre .cm{color:var(--muted)} pre .kw{color:var(--accent)} pre .fr{color:var(--accent2)} pre .tr{color:var(--warn)}
+
+  .cards{display:grid; grid-template-columns:1fr 1fr; gap:13px; margin:16px 0 22px}
+  @media (max-width:640px){ .cards{grid-template-columns:1fr} }
+  .cd{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:14px 16px; box-shadow:0 4px 14px var(--shadow)}
+  .cd h4{margin:0 0 6px; font-size:15px; display:flex; gap:8px; align-items:baseline}
+  .cd h4 .t{flex:none; color:var(--accent); font-weight:800; font-size:12px; font-variant-numeric:tabular-nums}
+  .cd p{margin:0; font-size:14px; color:var(--muted); line-height:1.55}
+  .cd.risk h4 .t{color:var(--warn)}
+
+  .phase{display:flex; gap:14px; margin:0 0 12px}
+  .phase .pn{flex:none; width:74px; font-size:12px; font-weight:700; color:var(--accent); padding-top:3px}
+  .phase .pb{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:12px 15px; flex:1; box-shadow:0 4px 14px var(--shadow)}
+  .phase h4{margin:0 0 4px; font-size:15px} .phase p{margin:0; font-size:14px; color:var(--muted)}
+
+  .quote{font-size:19px; line-height:1.45; margin:26px 0; padding-left:18px; border-left:3px solid var(--accent); font-weight:500}
+  footer{border-top:1px solid var(--line); margin-top:46px; padding:24px 0 60px; color:var(--muted); font-size:13.5px}
+  .src a{color:var(--muted)}
+  hr.s{border:none; border-top:1px solid var(--line); margin:26px 0}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <svg class="diagram" viewBox="0 0 260 150" fill="none">
+    <!-- 3D object -->
+    <g stroke="var(--accent)" stroke-width="1.6">
+      <path d="M18 52 L40 40 L62 52 L62 92 L40 104 L18 92 Z"/>
+      <path d="M18 52 L40 64 L62 52 M40 64 L40 104" opacity=".6"/>
+    </g>
+    <text x="24" y="126" fill="var(--muted)" font-size="10" font-family="monospace">3D-объект</text>
+    <!-- arrow -->
+    <path d="M70 72 L96 72" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#a)"/>
+    <!-- DNA tokens -->
+    <g fill="var(--accent2)">
+      <rect x="104" y="50" width="10" height="44" rx="2"/><rect x="118" y="58" width="10" height="28" rx="2" opacity=".8"/>
+      <rect x="132" y="46" width="10" height="52" rx="2" opacity=".9"/><rect x="146" y="60" width="10" height="24" rx="2" opacity=".7"/>
+    </g>
+    <text x="106" y="126" fill="var(--muted)" font-size="10" font-family="monospace">ДНК</text>
+    <path d="M164 72 L190 72" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#a)"/>
+    <!-- scene grid -->
+    <g stroke="var(--accent)" stroke-width="1.4" fill="none">
+      <rect x="198" y="44" width="52" height="56" rx="4"/>
+      <circle cx="212" cy="64" r="7" fill="var(--accent2)" stroke="none"/>
+      <path d="M226 84 l10 -8 l10 8 z" fill="var(--accent)" stroke="none"/>
+    </g>
+    <text x="204" y="126" fill="var(--muted)" font-size="10" font-family="monospace">сцена</text>
+    <defs><marker id="a" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+      <path d="M0 0 L7 3.5 L0 7 z" fill="var(--muted)"/></marker></defs>
+  </svg>
+  <div class="wrap">
+    <span class="kick">Анализ · VLM × DiT · консистентность · дешёвый прототип</span>
+    <h1>ДНК объектов: устойчивая сцена без полной 3D</h1>
+    <p class="lede">Почему 2D-датасеты ломают консистентность в DiT и VLM, где на спектре решений сидит идея «ДНК объектов», и как собрать проверяемый прототип на замороженных открытых моделях — за выходные и за десятки долларов.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <a href="#tldr">Выжимка</a>
+    <a href="#problem">Проблема</a>
+    <a href="#spectrum">Спектр решений</a>
+    <a href="#dna">Что такое ДНК</a>
+    <a href="#mvp">Дешёвый MVP</a>
+    <a href="#valid">Валидация</a>
+    <a href="#risks">Риски</a>
+    <a href="#roadmap">Дорожная карта</a>
+  </nav>
+
+  <div class="tldr" id="tldr">
+    <h3>Короткая выжимка</h3>
+    <dl>
+      <dt>Проблема</dt><dd>Датасеты — это 2D-проекции 3D-мира. Модель учит распределение <em>картинок</em>, а не <em>объектов</em>, — и потому у неё нет устойчивой идентичности объекта. Отсюда дрейф при генерации серий и видео.</dd>
+      <dt>Идея</dt><dd>Извлекать компактную <em>view-invariant «ДНК»</em> объекта и собирать сцену из ДНК + раскладки — средний путь между чистым 2D и полной 3D-реконструкцией с физдвижком.</dd>
+      <dt>Дешевле всего</dt><dd>Всё замороженное и открытое: <code>DINOv2</code> (извлечение) → мелкий ресемплер (ДНК) → инъекция IP-Adapter-стилем в замороженный DiT. Обучаем ~адаптер, не генератор.</dd>
+      <dt>Уже почти показано</dt><dd>Object-centric диффузия (CODA, slot-guided adaptation) делает ровно это: слоты из DINOv2 + контрастив + заморозка SD. Механизм де-рискован; новое у тебя — <em>view-инвариантность и сборка сцены из ДНК</em>.</dd>
+      <dt>Вердикт</dt><dd>Идея адекватна и дёшева. Она решает <em>консистентность</em>, но не физику — это честно надо разделять. Гипотезу можно опровергнуть/подтвердить одним экспериментом на 20 объектах.</dd>
+    </dl>
+  </div>
+
+  <section id="problem">
+    <h2 class="sec"><span class="n">01</span>Проблема: почему 2D-датасеты ломают консистентность</h2>
+    <p class="sub">Один корень у двух симптомов — «плывущие» объекты в генерации и слабое пространственно-физическое рассуждение.</p>
+
+    <p>Всё, что попадает в камеру или глаз, — это проекция <code>P: ℝ³ → ℝ²</code>. Датасеты состоят из таких проекций. Значит, и модель — что диффузионный трансформер (DiT) для генерации, что VLM для понимания — учит распределение <em>2D-картинок</em> <code>p(x)</code> или <code>p(x|текст)</code>, а не распределение <em>объектов и сцен</em> в 3D. У неё нет отдельной, устойчивой сущности «этот объект», не зависящей от ракурса, света и позы.</p>
+
+    <p><span class="li">Сторона VLM (понимание).</span> Картинка кодируется в представление, выровненное с языком (линия CLIP / DINO / LLaVA). Представление <em>запутано по ракурсу</em>: одно и то же изделие с двух сторон даёт разные векторы, а разные объекты с одного ракурса — похожие. Отсюда трудности с окклюзией, постоянством объектов, счётом и пространственно-физическими отношениями.</p>
+
+    <p><span class="li">Сторона DiT (генерация).</span> Модель ложится на 2D-многообразие данных. Когда ты просишь «тот же объект» в другом кадре или ракурсе, <em>ничто не удерживает идентичность</em> — модель каждый раз заново «галлюцинирует» объект, и он плывёт: геометрия, текстура, число деталей, атрибуты. Это не гипотеза, а сегодняшняя эмпирика: даже лучшие открытые видеомодели середины 2020-х держат лицо/предмет лишь пару секунд, после чего идёт дрейф (у LTX-Video лица «плывут» через 2–3 c; Wan 2.2 стабильнее и держит ~5 c), а «консистентность персонажа» в картинках до сих пор латают костылями — IP-Adapter, InstantID, DreamBooth.</p>
+
+    <div class="callout warn">
+      <h3>Две разные оси — не путать</h3>
+      <p><span class="li">Ось A — консистентность идентичности:</span> «тот же объект выглядит так же» между видами/кадрами. <span class="li">Ось B — физическая правдоподобность:</span> объекты падают, сталкиваются, отбрасывают верные тени. Твоя «ДНК» бьёт в основном по оси A. Ось B — это отдельная задача мировых моделей/симуляторов, и ДНК её сама по себе не решает. Держим это разделение всю дорогу.</p>
+    </div>
+
+    <p>Корень, переформулированный в одну фразу: <em>не хватает явного, устойчивого, инвариантного к ракурсу представления объекта</em>, которое переживает смену вида. Именно это и предлагается добавить.</p>
+  </section>
+
+  <section id="spectrum">
+    <h2 class="sec"><span class="n">02</span>Спектр решений: где сидит «ДНК»</h2>
+    <p class="sub">От «дёшево, но плывёт» до «точно, но дорого и хрупко». ДНК — средний путь, с апгрейдом вверх.</p>
+
+    <div class="lvl">
+      <div class="ln">1</div>
+      <div><h4>Чистый 2D DiT + текст</h4>
+        <p>Обычная text-to-image/video диффузия. Быстро и дёшево, но идентичность не удерживается вообще.</p>
+        <div class="bars"><span>стоимость: <b>очень низкая</b></span><span>консистентность: <b>никакая</b></span><span>композиция: <b>слабая</b></span></div>
+      </div>
+    </div>
+    <div class="lvl">
+      <div class="ln">2</div>
+      <div><h4>+ Персонализация субъекта <span class="pill mid">частично</span></h4>
+        <p>Textual Inversion, DreamBooth/LoRA, IP-Adapter, InstantID. Удерживают <em>один</em> субъект, но плохо композируются в мультиобъектную сцену и часто требуют затрат на каждый субъект.</p>
+        <div class="bars"><span>стоимость: <b>низкая–средняя</b></span><span>консистентность: <b>для 1 объекта</b></span><span>композиция: <b>слабая</b></span></div>
+      </div>
+    </div>
+    <div class="lvl here">
+      <div class="ln">3</div>
+      <div><h4>+ Object-centric «ДНК» + раскладка сцены &nbsp;<span class="pill up">твоя идея · ты здесь</span></h4>
+        <p>Компактная view-invariant ДНК на каждый объект + раскладка (боксы/граф сцены). Композируется в мультиобъектную сцену, обусловлена ракурсом, без мешей и физдвижка. Средний путь.</p>
+        <div class="bars"><span>стоимость: <b>низкая (адаптер)</b></span><span>консистентность: <b>высокая по A</b></span><span>композиция: <b>явная</b></span></div>
+      </div>
+    </div>
+    <div class="lvl">
+      <div class="ln">4</div>
+      <div><h4>+ Структурированная ДНК: tri-plane / feature-field <span class="pill up">апгрейд</span></h4>
+        <p>ДНК становится не плоским эмбеддингом, а компактным 3D-структурированным кодом (tri-plane / поле признаков) + мелкий нейрорендер. Линия LRM / TriplaneGaussian. Даёт геометрическую консистентность — всё ещё без мешей и физики.</p>
+        <div class="bars"><span>стоимость: <b>средняя</b></span><span>консистентность: <b>высокая A + геометрия</b></span><span>композиция: <b>явная</b></span></div>
+      </div>
+    </div>
+    <div class="lvl">
+      <div class="ln">5</div>
+      <div><h4>Полная 3D-реконструкция + физдвижок</h4>
+        <p>Меши/сплаты + физический движок. Максимально точно и по оси B тоже — но дорого, хрупко и медленно. <em>Это ты сознательно отвергаешь.</em></p>
+        <div class="bars"><span>стоимость: <b>высокая</b></span><span>консистентность: <b>A + B</b></span><span>композиция: <b>полная</b></span></div>
+      </div>
+    </div>
+
+    <p>Вывод: ДНК — это уровень 3 с естественной дорогой на уровень 4. Не надо прыгать в 5, чтобы получить 80% пользы по консистентности.</p>
+  </section>
+
+  <section id="dna">
+    <h2 class="sec"><span class="n">03</span>Что такое «ДНК объекта» операционально</h2>
+    <p class="sub">Определим так, чтобы это можно было собрать, а не только обсуждать.</p>
+
+    <p><span class="li">ДНК</span> — это компактный код фиксированного размера (например, набор из <code>N = 4…16</code> токенов размерности <code>d</code>), кодирующий <em>идентичность и вид</em> объекта <em>отдельно</em> от его текущей проекции — позы, камеры, света, деформации и контекста. По форме — как слоты (Slot Attention) или как токены изображения в IP-Adapter / выход Perceiver-ресемплера.</p>
+
+    <p>Чтобы ДНК работала, у неё должны быть четыре свойства, и каждое проверяемо:</p>
+    <div class="cards">
+      <div class="cd"><h4><span class="t">i</span> Инвариантность</h4><p>Один объект с разных ракурсов → <em>одна и та же</em> ДНК. Это то, что покупает кросс-видовую консистентность.</p></div>
+      <div class="cd"><h4><span class="t">ii</span> Различимость</h4><p>Разные объекты → <em>разные</em> ДНК. Иначе сцена «схлопнет» объекты друг в друга.</p></div>
+      <div class="cd"><h4><span class="t">iii</span> Достаточность</h4><p>ДНК + поза/раскладка → достоверный рендер. Кода должно хватать, чтобы объект восстановился узнаваемо.</p></div>
+      <div class="cd"><h4><span class="t">iv</span> Композируемость</h4><p>Несколько ДНК в одной сцене без утечки атрибутов (текстура A не перетекает на B).</p></div>
+    </div>
+
+    <p><span class="li">Сцена</span> тогда — это <code>{ ДНК₁, ДНК₂, … } + раскладка</code> (боксы или грубый граф отношений) <code>+ камера/поза</code>, из которых генератор рисует 2D. Ключевой трюк для видео и мультивида: <em>фиксируем ДНК, меняем только позу/камеру/раскладку между кадрами</em> — и объект остаётся собой по построению, а не по удаче.</p>
+  </section>
+
+  <section id="mvp">
+    <h2 class="sec"><span class="n">04</span>Самый дешёвый рабочий прототип</h2>
+    <p class="sub">Ничего не учим с нуля. Замораживаем всё большое, обучаем только мелкий адаптер. Это и есть рецепт «дёшево на сегодняшней экосистеме».</p>
+
+    <p>Стек собирается из готовых открытых кусков — почти все заморожены (❄️), обучается только ДНК-компрессор и инъектор (🔥):</p>
+
+    <table>
+      <thead><tr><th>Роль</th><th>Открытый инструмент (2025–2026)</th><th class="c">Обучаем?</th><th>Заметка</th></tr></thead>
+      <tbody>
+        <tr><td>Экстрактор признаков</td><td><code>DINOv2</code> (или SigLIP/CLIP-image)</td><td class="c"><span class="froze">❄️</span></td><td>лучшие объектные признаки</td></tr>
+        <tr><td>ДНК-компрессор</td><td>Slot Attention / Perceiver-ресемплер</td><td class="c"><span class="train">🔥</span></td><td>N токенов на объект = «ДНК»</td></tr>
+        <tr><td>Инъектор в генератор</td><td>IP-Adapter-стиль (decoupled cross-attn)</td><td class="c"><span class="train">🔥</span></td><td>учим только доп. K/V/out — как в CODA</td></tr>
+        <tr><td>Генератор (картинки)</td><td>SDXL · FLUX.2&nbsp;klein&nbsp;4B · Z-Image&nbsp;Turbo&nbsp;6B</td><td class="c"><span class="froze">❄️</span></td><td>SDXL — самая зрелая экосистема адаптеров</td></tr>
+        <tr><td>Генератор (видео)</td><td>LTX-Video&nbsp;0.9.5 · Wan&nbsp;2.2</td><td class="c"><span class="froze">❄️</span>+LoRA</td><td>LTX дешевле всех, влезает в 12 ГБ</td></tr>
+        <tr><td>Раскладка сцены</td><td>ControlNet / GLIGEN / regional-attn</td><td class="c"><span class="froze">❄️</span>/<span class="train">🔥</span></td><td>боксы или граф отношений</td></tr>
+        <tr><td>Данные (мультивид)</td><td>Objaverse-рендеры · CO3D · MVImgNet · видео+SAM</td><td class="c">—</td><td>дешёвый источник «тот же объект, много видов»</td></tr>
+      </tbody>
+    </table>
+
+    <p><span class="li">Как это связано в обучении.</span> Всё держится на трёх кусках кода поверх замороженных моделей:</p>
+<pre><span class="cm"># --- Извлечение ДНК (энкодер заморожен) ---</span>
+feats = <span class="fr">dinov2</span>(image_of_object)          <span class="cm"># ❄️ патч-признаки объекта</span>
+dna   = <span class="tr">resampler</span>(feats)                 <span class="cm"># 🔥 N обучаемых токенов [N, d] = "ДНК"</span>
+
+<span class="cm"># --- Инъекция в замороженный DiT (IP-Adapter-стиль) ---</span>
+h = <span class="fr">self_attn</span>(x)                         <span class="cm"># ❄️ обычное внимание генератора</span>
+h = h + λ * <span class="tr">cross_attn</span>(x, dna)           <span class="cm"># 🔥 доп. K/V/out под ДНК-токены</span>
+<span class="cm"># + опц. маска по bbox объекта → мультиобъектная сцена без утечки</span>
+
+<span class="cm"># --- Лоссы ---</span>
+L_denoise  = ‖ε − <span class="fr">ε_θ</span>(x_t, t, dna, layout)‖²        <span class="cm"># стандартный диффузионный</span>
+L_identity = <span class="tr">contrastive</span>(dna(view_a), dna(view_b),   <span class="cm"># один объект → близко</span>
+                         dna(other_object))          <span class="cm"># разные → далеко  ← view-инвариантность</span>
+L = L_denoise + β · L_identity</pre>
+
+    <p>Именно <code>L_identity</code> на парах «тот же объект, другой ракурс» и превращает обычный IP-Adapter в <em>view-invariant ДНК</em>. Мультивид для этих пар берётся дёшево: офлайн-рендеры Objaverse (нужен рендерер, а не физдвижок), реальные обороты предмета (CO3D/MVImgNet) или соседние кадры видео с одним инстансом (вырезаем через SAM). Так мы обходим твою же претензию «у нас только 2D» — не физикой, а дешёвым мультивидом.</p>
+
+    <div class="callout">
+      <h3>Оценка стоимости</h3>
+      <p>Все бэкбоны открыты и заморожены; учится адаптер+ресемплер (~10–100 млн параметров, масштаб LoRA). Хватает одной 24-ГБ карты: аренда 4090 ≈ $0.3–0.6/час на комьюнити-облаках, A100 ≈ $1–2/час. Прототип на картинках — единицы GPU-дней, <em>порядка десятков–сотен долларов и 1–3 недель неполной занятости</em>. Видео — позже, дороже. Картинки первыми: дешевле и быстрее итерации.</p>
+    </div>
+  </section>
+
+  <section id="valid">
+    <h2 class="sec"><span class="n">05</span>Как проверить адекватность решения</h2>
+    <p class="sub">Главная часть вопроса. Делаем гипотезу опровергаемой и ставим числовой go/no-go.</p>
+
+    <p><span class="li">Гипотеза H.</span> Явная view-invariant ДНК-обусловленность заметно повышает кросс-видовую/кадровую идентичность при почти нулевой доп-стоимости (замороженный бэкбон + мелкий адаптер), и ДНК композируются в мультиобъектную сцену без утечки идентичности.</p>
+
+    <p><span class="li">Метрики консистентности.</span> Все считаются автоматически, без разметки:</p>
+    <div class="cards">
+      <div class="cd"><h4>Идентичность (кадр↔кадр)</h4><p>Косинус между <code>DINO</code>-фичами одного объекта на разных сгенерированных видах; плюс <code>CLIP-I</code> (subject fidelity, как в DreamBooth). ↑ лучше.</p></div>
+      <div class="cd"><h4>Темпоральная (видео)</h4><p>Ошибка переноса по оптическому потоку (warping error) между кадрами; CLIP frame-to-frame. ↓ лучше.</p></div>
+      <div class="cd"><h4>Геометрия (мультивид)</h4><p>Прогнать сгенерированные виды через feed-forward 3D (<code>LRM</code>/<code>TriplaneGaussian</code>) и смерить разброс формы: «сходятся ли виды к одному объекту». ↓ лучше.</p></div>
+      <div class="cd"><h4>Композиция без утечки</h4><p>Детектор + VLM-VQA: «это тот же объект? сколько их? не смешаны ли атрибуты?» по сцене из K объектов.</p></div>
+    </div>
+
+    <p><span class="li">Бейзлайны для сравнения:</span> (1) чистый текст-DiT без ДНК — нижняя граница; (2) одно-картиночный IP-Adapter — «наивная ДНК»; (3) DreamBooth/LoRA на объект — сильная, но дорогая и некомпозируемая верхняя граница; (4) Textual Inversion — токен-эмбеддинг как наивная ДНК. <span class="li">Абляции:</span> с/без <code>L_identity</code>; размер ДНК (1 против N токенов); заморозка против дообучения энкодера; 1 объект против сцены из K.</p>
+
+    <div class="callout go">
+      <h3>Числовой go / no-go (пример гейта)</h3>
+      <p>«ДНК поднимает DINO-консистентность между видами с ~0.X до ~0.Y — <em>заметно выше IP-Adapter</em> — при <code>&lt; Z</code> GPU-часов обучения, не ухудшая базовый FID и следование промпту; в сцене из 2 объектов идентичности не смешиваются в &gt; P% случаев». Порог перейден → идея адекватна и заслуживает фазы 2 (структурированная ДНК). Не перейден → знаем точно, что именно не сработало (ёмкость ДНК? развязка позы? инъекция?).</p>
+    </div>
+
+    <div class="callout">
+      <h3>Проверка «за выходные»</h3>
+      <p>Минимальный эксперимент, уже отвечающий на главный вопрос: взять 20 объектов из Objaverse, сгенерировать каждый в 8 видах/контекстах тремя способами — (а) текст, (б) IP-Adapter, (в) прото-ДНК, обученная контрастивно на мультивиде, — и посчитать DINO/CLIP-I консистентность. Если (в) ≥ (б) и явно &gt; (а) — сигнал положительный, идём дальше. По сути это форк репозиториев IP-Adapter/CODA плюс скрипт метрик — стоит копейки.</p>
+    </div>
+  </section>
+
+  <section id="risks">
+    <h2 class="sec"><span class="n">06</span>Честные риски и границы</h2>
+    <p class="sub">Что ДНК решает, а что нет — чтобы не переоценить.</p>
+    <div class="cards">
+      <div class="cd risk"><h4><span class="t">!</span> Ёмкость ДНК</h4><p>Несколько токенов не удержат мелочи — текст на этикетке, тонкую фактуру. Компромисс: размер ДНК ↔ стоимость и следование промпту.</p></div>
+      <div class="cd risk"><h4><span class="t">!</span> Развязка идентичности и позы</h4><p>Полностью отделить «что это» от «как повёрнуто» из одного 2D тяжело. Лечится мультивид/видео-сигналом — но это доп. (дешёвые) данные.</p></div>
+      <div class="cd risk"><h4><span class="t">!</span> Мультиобъектная привязка</h4><p>Инъекция нескольких ДНК → утечка атрибутов между объектами. Нужны раскладка и маскированное внимание, иначе сцена «перемешивается».</p></div>
+      <div class="cd risk"><h4><span class="t">!</span> Физика ≠ консистентность</h4><p>ДНК даёт устойчивую идентичность, но не динамику и не физику. Твоя оговорка «без физдвижка» верна — но тогда и физики от ДНК не жди. Это ось B.</p></div>
+    </div>
+    <div class="callout warn">
+      <h3>Про новизну — честно</h3>
+      <p>Механизм уже частично показан: object-centric диффузия (CODA), slot-guided адаптация замороженной диффузии, IP-Adapter, 3D-aware GAN'ы. Новое именно в твоём — <em>ДНК как first-class, инвариантный к ракурсу, композируемый примитив сцены</em> и явная сборка мультиобъектной сцены как единый интерфейс обусловливания. Это хорошая новость: дешёвый MVP ≈ «IP-Adapter с мультитокенной view-invariant ДНК + раскладка», значит — проверяемо и недорого, а не многолетний R&D вслепую.</p>
+    </div>
+  </section>
+
+  <section id="roadmap">
+    <h2 class="sec"><span class="n">07</span>Дорожная карта по фазам</h2>
+    <p class="sub">Каждая фаза дёшево проверяет одну гипотезу и открывает следующую.</p>
+
+    <div class="phase"><div class="pn">Фаза 0<br>дни</div><div class="pb">
+      <h4>«Бедная ДНК» из коробки</h4><p>Готовый IP-Adapter/InstantID как есть → померить консистентность, отладить метрики, нащупать потолок. Нулевая разработка, только оценка.</p></div></div>
+    <div class="phase"><div class="pn">Фаза 1<br>1–3 нед</div><div class="pb">
+      <h4>View-invariant ДНК (одиночный объект)</h4><p>DINOv2 + ресемплер + контрастив → инъекция в замороженный SDXL/DiT. Один объект, много видов. Проверить гипотезу H на «выходном» эксперименте.</p></div></div>
+    <div class="phase"><div class="pn">Фаза 2<br>недели</div><div class="pb">
+      <h4>Сцена из K ДНК</h4><p>Несколько ДНК + раскладка (боксы/граф) + маскированное внимание. Цель — мультиобъектная композиция без утечки.</p></div></div>
+    <div class="phase"><div class="pn">Фаза 3<br>нед–мес</div><div class="pb">
+      <h4>Видео</h4><p>Фиксируем ДНК, варьируем позу/камеру через LTX-Video/Wan (LoRA). Темпоральная консистентность по построению, а не по удаче.</p></div></div>
+    <div class="phase"><div class="pn">Фаза 4<br>опц.</div><div class="pb">
+      <h4>Структурированная ДНК</h4><p>ДНК → tri-plane/feature-field на объект + мелкий нейрорендер (линия LRM/TriplaneGaussian). Геометрическая консистентность без мешей и физдвижка.</p></div></div>
+
+    <p class="quote">Идея адекватна и дёшева: это правильный средний путь, а её механизм уже частично доказан object-centric диффузией. Риск сосредоточен в двух местах — view-инвариантности и мультиобъектной композиции, — и оба снимаются экспериментом на десятки долларов. ДНК лечит консистентность, а не физику; так её и надо продавать.</p>
+  </section>
+
+  <footer>
+    <p style="margin-bottom:12px"><b>Анализ.</b> Составлено под задачу: средний путь между 2D-генерацией и полной 3D-реконструкцией, с прицелом на дешёвый проверяемый прототип на открытой экосистеме середины 2020-х. Названия моделей и методов сверены по источникам ниже (июль 2026).</p>
+    <p class="src">Источники:
+      <a href="https://localaimaster.com/blog/best-local-image-models-compared">Открытые image-модели 2026 (FLUX, SD3.5, Qwen-Image, Z-Image)</a> ·
+      <a href="https://localaimaster.com/blog/local-ai-video-generation">Открытые видеомодели 2026 (Wan 2.2, HunyuanVideo, LTX-Video)</a> ·
+      <a href="https://arxiv.org/html/2601.01224">CODA: object-centric диффузия, слоты + контрастив на замороженной SD</a> ·
+      <a href="https://arxiv.org/pdf/2407.17929">Slot-guided адаптация предобученной диффузии</a> ·
+      <a href="https://zouzx.github.io/TriplaneGaussian/">TriplaneGaussian: feed-forward single-view→3D</a> ·
+      <a href="https://arxiv.org/abs/2507.08772">Contextual Part Latents for 3D Generation</a> ·
+      <a href="https://www.unite.ai/instantid-zero-shot-identity-preserving-generation-in-seconds/">InstantID: identity-preserving генерация</a> ·
+      <a href="https://arxiv.org/html/2410.18974v1">3D-Adapter: geometry-consistent multi-view diffusion</a>
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>

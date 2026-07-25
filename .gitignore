@@ -1,0 +1,31 @@
+# --- Секреты / окружение ---
+.env
+.env.*
+!.env.example
+
+# --- Python / FastAPI ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# --- Node / Nuxt ---
+node_modules/
+.nuxt/
+.output/
+.data/
+dist/
+*.log
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# --- Docker ---
+pgdata/

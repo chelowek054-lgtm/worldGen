@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Критический разбор World-Gen на фоне фронтира мировых моделей</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --paper:#fff; --ink:#191c22; --muted:#5a6472;
+    --accent:#4356c9; --accent2:#0e9488; --ok:#15803d; --warn:#b45309; --risk:#b91c1c;
+    --line:#e5e8ee; --line2:#d5dae3; --code:#eef1f5; --shadow:rgba(30,35,60,.07); --grid:rgba(67,86,201,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0e1117; --paper:#161a22; --ink:#e7eaf0; --muted:#9aa4b3;
+      --accent:#8b93ff; --accent2:#2dd4bf; --ok:#4ade80; --warn:#fbbf24; --risk:#f87171;
+      --line:#242b37; --line2:#313a49; --code:#1b212c; --shadow:rgba(0,0,0,.35); --grid:rgba(139,147,255,.07);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink); line-height:1.62; font-size:16.5px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:880px; margin:0 auto; padding:0 22px}
+  h1,h2,h3,h4{line-height:1.22; font-weight:700; letter-spacing:-.01em}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; background:var(--code); padding:1.5px 6px; border-radius:5px; font-size:.86em}
+  a{color:var(--accent); text-decoration:none} a:hover{text-decoration:underline}
+  em{font-style:normal; color:var(--accent); font-weight:600}
+
+  header.hero{position:relative; overflow:hidden; border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(0,0,0,0) 55%,var(--bg) 100%),
+      repeating-linear-gradient(0deg,transparent,transparent 25px,var(--grid) 25px,var(--grid) 26px),
+      repeating-linear-gradient(90deg,transparent,transparent 25px,var(--grid) 25px,var(--grid) 26px);
+    padding:50px 0 38px}
+  .hero .wrap{position:relative; z-index:2}
+  .kick{display:inline-block; font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent);
+    font-weight:700; border:1px solid var(--line2); background:var(--paper); border-radius:999px; padding:5px 13px; margin-bottom:14px}
+  .hero h1{font-size:33px; margin:.15em 0 .4em}
+  .hero p.lede{font-size:18px; color:var(--muted); max-width:660px; margin:0}
+  .pipe{position:absolute; right:-10px; top:34px; width:300px; opacity:.9; z-index:1}
+  @media (max-width:800px){ .pipe{display:none} .hero h1{font-size:26px} }
+
+  .toc{display:flex; flex-wrap:wrap; gap:8px; margin:24px 0 6px}
+  .toc a{font-size:13px; color:var(--muted); border:1px solid var(--line); background:var(--paper); border-radius:999px; padding:5px 12px}
+  .toc a:hover{border-color:var(--accent); color:var(--accent); text-decoration:none}
+
+  section{padding:8px 0}
+  h2.sec{font-size:23px; margin:42px 0 4px; padding-top:12px}
+  h2.sec .n{color:var(--accent); font-variant-numeric:tabular-nums; margin-right:.4em; font-size:18px}
+  .sub{color:var(--muted); font-size:15px; margin:.25em 0 1.1em}
+  p{margin:0 0 15px} .li{font-weight:700}
+
+  /* verdict box */
+  .verdict{background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:6px 24px 16px;
+    margin:28px 0; box-shadow:0 8px 26px var(--shadow); border-top:4px solid var(--accent)}
+  .verdict h3{font-size:14px; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); margin:18px 0 12px}
+  .verdict dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:9px 16px}
+  .verdict dt{font-weight:700; white-space:nowrap}
+  .verdict dd{margin:0; color:var(--muted); font-size:15.5px}
+  @media (max-width:560px){ .verdict dl{grid-template-columns:1fr; gap:2px 0} .verdict dd{margin-bottom:8px} }
+
+  /* scorecard */
+  .score{display:grid; grid-template-columns:1fr 1fr; gap:10px 22px; margin:18px 0 6px}
+  @media (max-width:560px){ .score{grid-template-columns:1fr} }
+  .row{display:flex; align-items:center; gap:10px; font-size:14px}
+  .row .lb{flex:1; color:var(--ink)}
+  .bar{flex:none; width:96px; height:8px; border-radius:5px; background:var(--code); overflow:hidden}
+  .bar i{display:block; height:100%}
+  .b-hi i{width:88%; background:var(--ok)} .b-mid i{width:55%; background:var(--warn)} .b-lo i{width:28%; background:var(--risk)}
+  .row .tag{flex:none; font-size:11px; font-weight:700; width:64px; text-align:right}
+  .b-hi .tag{color:var(--ok)} .b-mid .tag{color:var(--warn)} .b-lo .tag{color:var(--risk)}
+
+  .cards{display:grid; grid-template-columns:1fr 1fr; gap:13px; margin:16px 0 20px}
+  @media (max-width:640px){ .cards{grid-template-columns:1fr} }
+  .cd{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:14px 16px; box-shadow:0 4px 14px var(--shadow)}
+  .cd h4{margin:0 0 6px; font-size:15px}
+  .cd p{margin:0; font-size:14px; color:var(--muted); line-height:1.55}
+  .cd.str{border-left:3px solid var(--ok)} .cd.str h4{color:var(--ok)}
+
+  .risk{background:var(--paper); border:1px solid var(--line); border-left:4px solid var(--risk); border-radius:12px;
+    padding:15px 18px; margin:0 0 13px; box-shadow:0 4px 14px var(--shadow)}
+  .risk h4{margin:0 0 6px; font-size:16px; display:flex; gap:9px; align-items:baseline}
+  .risk h4 .rn{flex:none; color:var(--risk); font-weight:800; font-size:13px; background:rgba(185,28,28,.12); border-radius:6px; padding:1px 7px}
+  .risk p{margin:0 0 8px; font-size:15px}
+  .risk .fix{font-size:13.5px; color:var(--muted); border-top:1px dashed var(--line2); padding-top:8px; margin-top:2px}
+  .risk .fix b{color:var(--accent2)}
+
+  table{width:100%; border-collapse:collapse; margin:12px 0 22px; font-size:14px; background:var(--paper); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  th,td{padding:10px 12px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line)}
+  thead th{background:rgba(67,86,201,.08); font-size:13px}
+  tr:last-child td{border-bottom:none}
+  .bet td:first-child{font-weight:700; color:var(--accent)}
+  .bet.you{background:rgba(67,86,201,.05)}
+  .bet.you td:first-child::after{content:" ← ты здесь"; color:var(--warn); font-weight:700; font-size:11px}
+  @media (max-width:660px){ table{font-size:12.5px} th,td{padding:8px 8px} }
+
+  .callout{border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:12px; padding:16px 20px; margin:22px 0;
+    background:linear-gradient(180deg,rgba(67,86,201,.06),rgba(67,86,201,.02))}
+  .callout.warn{border-left-color:var(--warn); background:linear-gradient(180deg,rgba(180,83,9,.07),rgba(180,83,9,.02))}
+  .callout h3{margin:0 0 8px; font-size:17px; color:var(--accent)} .callout.warn h3{color:var(--warn)}
+  .callout p:last-child{margin-bottom:0}
+
+  .lane{display:flex; gap:14px; margin:0 0 11px; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:13px 16px; box-shadow:0 4px 14px var(--shadow)}
+  .lane .ll{flex:none; width:26px; height:26px; border-radius:8px; background:var(--accent); color:#fff; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center}
+  .lane h4{margin:1px 0 4px; font-size:15px} .lane p{margin:0; font-size:14px; color:var(--muted)}
+
+  .quote{font-size:19px; line-height:1.45; margin:24px 0; padding-left:18px; border-left:3px solid var(--accent); font-weight:500}
+  footer{border-top:1px solid var(--line); margin-top:44px; padding:24px 0 60px; color:var(--muted); font-size:13.5px}
+  .src a{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <svg class="pipe" viewBox="0 0 300 130" fill="none" font-family="monospace">
+    <line x1="18" y1="66" x2="282" y2="66" stroke="var(--line2)" stroke-width="2"/>
+    <g>
+      <circle cx="30" cy="66" r="11" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/><text x="30" y="70" fill="var(--accent)" font-size="11" text-anchor="middle">0</text>
+      <circle cx="76" cy="66" r="11" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/><text x="76" y="70" fill="var(--accent)" font-size="11" text-anchor="middle">1</text>
+      <circle cx="122" cy="66" r="11" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/><text x="122" y="70" fill="var(--accent)" font-size="11" text-anchor="middle">2</text>
+      <circle cx="168" cy="66" r="14" fill="var(--risk)" stroke="none"/><text x="168" y="70" fill="#fff" font-size="10" text-anchor="middle">2.5</text>
+      <circle cx="214" cy="66" r="11" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/><text x="214" y="70" fill="var(--accent)" font-size="11" text-anchor="middle">3</text>
+      <circle cx="252" cy="66" r="11" fill="var(--paper)" stroke="var(--accent)" stroke-width="2"/><text x="252" y="70" fill="var(--accent)" font-size="11" text-anchor="middle">4</text>
+    </g>
+    <path d="M168 38 l0 12" stroke="var(--risk)" stroke-width="1.6"/>
+    <text x="168" y="30" fill="var(--risk)" font-size="10" text-anchor="middle">слабый шов</text>
+  </svg>
+  <div class="wrap">
+    <span class="kick">Критический разбор · World-Gen × фронтир мировых моделей · 2026</span>
+    <h1>World-Gen: сильный директор, спорный физик</h1>
+    <p class="lede">Модульный «нейронный игровой движок» против трёх ставок фронтира. Где решение выигрывает (консистентность, контроль, дешёвые данные), где рвётся шов (физическая корректность), и что менять ради конечной цели — консистентной физически-правильной сцены.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <a href="#verdict">Вердикт</a>
+    <a href="#recon">Что предложено</a>
+    <a href="#strong">Сильное</a>
+    <a href="#risks">Слабые места</a>
+    <a href="#frontier">Фронтир: 3 ставки</a>
+    <a href="#map">Где ты на карте</a>
+    <a href="#reco">Рекомендации</a>
+  </nav>
+
+  <div class="verdict" id="verdict">
+    <h3>Вердикт в одном экране</h3>
+    <dl>
+      <dt>Что это</dt><dd>Модульный конвейер-«игровой движок»: DINOv3-«паспорт объекта» для консистентности + детерминированный Этап 2.5 («мозг физики») + рендер FLUX.2, всё через общую латентную шину с ID.</dd>
+      <dt>Компоненты реальны</dt><dd>Проверил: FLUX.2 klein, DINOv3 (Gram Anchoring), FluSplat, Control-DINO, Self-Flow, PSIVG — <em>всё существует и выбрано грамотно</em>. Второй документ похож на LLM-сборку (следы схемы Gemini, часть «источников» — твои же промпты), но техстек не выдуман.</dd>
+      <dt>Главная сила</dt><dd>Контролируемость и консистентность через сквозные ID + паспорт; редактируемость (материал/свет по ID); дешёвое обучение synthetic-to-real из UE5.</dd>
+      <dt>Главный риск</dt><dd><em>«Детерминированная физика без физдвижка».</em> Этап 2.5 как ручная реология (Dᵏ 0–3, 6 типов связей) даёт правдоподобие, но не корректность — и не покрывает динамику во времени. Фронтир для корректности <em>возвращает</em> реальный солвер (PSIVG) либо учит физику на масштабе (Genie/Cosmos).</dd>
+      <dt>Итог</dt><dd>Отличный <em>директорский слой и data-engine</em>, но сам по себе не физически-корректный симулятор. Позиционировать честно, физику решать отдельной осью, консистентность — через 3D-нативное состояние.</dd>
+    </dl>
+
+    <h3>Оценка по осям</h3>
+    <div class="score">
+      <div class="row b-hi"><span class="lb">Консистентность (ID/паспорт)</span><span class="bar"><i></i></span><span class="tag">сильно</span></div>
+      <div class="row b-hi"><span class="lb">Контролируемость / редактируемость</span><span class="bar"><i></i></span><span class="tag">сильно</span></div>
+      <div class="row b-hi"><span class="lb">Дешёвый прототип (LoRA + UE5)</span><span class="bar"><i></i></span><span class="tag">сильно</span></div>
+      <div class="row b-lo"><span class="lb">Физическая корректность</span><span class="bar"><i></i></span><span class="tag">риск</span></div>
+      <div class="row b-lo"><span class="lb">Путь к real-time «playable»</span><span class="bar"><i></i></span><span class="tag">риск</span></div>
+      <div class="row b-mid"><span class="lb">Проработка «шины данных»</span><span class="bar"><i></i></span><span class="tag">пробел</span></div>
+    </div>
+  </div>
+
+  <section id="recon">
+    <h2 class="sec"><span class="n">01</span>Что предложено — коротко и честно</h2>
+    <p class="sub">Реконструирую суть, чтобы критика била по фактам, а не по пересказу.</p>
+    <p>World-Gen — это конвейер из стадий, передающих структурированные данные через общую латентную шину, где у каждого объекта есть сквозной ID: <code>0</code> Grey Boxing (камера, глубина/нормали) → <code>1–2</code> паспортизация статических и динамических объектов через DINOv3 → <code>2.5</code> <span class="li">Interaction Logic</span> (реологическая матрица <code>Dᵏ</code>, типы связей, механика деструкции → Unified Interaction Tensor, карты давления/смещения/разлома) → <code>3</code> материалы (FLUX.2, VAE отделяет форму от вида) → <code>4</code> свет/тени → <code>5</code> финальный стиль (Gaussian Splatting).</p>
+    <p>Консистентность держится на трёх китах: плотные признаки DINOv3 + Gram Anchoring как «паспорт», жёсткие/эластичные связи в UIT, и сквозная адресация по ID. Обучение — дёшево: synthetic-to-real из UE5/Unity (RGB, глубина, нормали, ID-маски, логи PhysX) + LoRA/ControlNet по стадиям.</p>
+  </section>
+
+  <section id="strong">
+    <h2 class="sec"><span class="n">02</span>Что здесь по-настоящему сильно</h2>
+    <p class="sub">Это не наивная идея — многое совпадает с реальным трендом «нейронных игровых движков».</p>
+    <div class="cards">
+      <div class="cd str"><h4>Модульная декомпозиция</h4><p>Разбиение на геометрию → идентичность → взаимодействие → материал → свет → стиль даёт контроль и интерпретируемость и бьёт по галлюцинациям. Это ровно то направление, куда двигается индустрия против «чёрного ящика».</p></div>
+      <div class="cd str"><h4>DINOv3-паспорт</h4><p>Плотные признаки с Gram Anchoring — верный выбор для идентичности и трекинга. Совпадает с реальными методами (Control-DINO, FluSplat), где признаки DINO — условие для генерации.</p></div>
+      <div class="cd str"><h4>ID-шина = редактируемость</h4><p>Смена материала без геометрии, консистентный пересчёт света по тем же ID, «заморозка» сцены через <code>Dᵏ=0</code> — это реальные плюсы структурированного представления над плоской диффузией.</p></div>
+      <div class="cd str"><h4>Synthetic-to-real из UE5</h4><p>Бесплатная идеальная разметка (глубина, нормали, ID, физика из PhysX) — стратегия уровня фронтира: так же кормят себя NVIDIA Cosmos и робо-симуляторы. Дёшево и правильно.</p></div>
+    </div>
+  </section>
+
+  <section id="risks">
+    <h2 class="sec"><span class="n">03</span>Слабые места и риски</h2>
+    <p class="sub">По каждому — в чём проблема и как её обходит фронтир.</p>
+
+    <div class="risk">
+      <h4><span class="rn">R1</span> «Физически корректно» — заявлено, но не решено</h4>
+      <p>Этап 2.5 — это, по сути, вручную закодированный мини-физдвижок: дискретная реология (<code>Dᵏ</code> 0–3) и 6 типов связей. Такой набор даёт <em>правдоподобие и арт-дирекшн</em>, но не корректность: реальные контакты, трение, разрушение и жидкости несводимы к 4 уровням. И ключевое — <em>кто считает динамику во времени?</em> Одиночные карты давления/смещения — это статические подсказки на кадр, а не временная симуляция столкновений и распространения деформации.</p>
+      <p class="fix"><b>Фронтир:</b> для настоящей корректности PSIVG (CVPR 2026) вставляет <em>реальный</em> физсимулятор в цикл: черновик → реконструкция 4D-мешей → симуляция траекторий → управление рендером. То есть возвращает тот самый солвер, который ты хотел исключить.</p>
+    </div>
+
+    <div class="risk">
+      <h4><span class="rn">R2</span> «Детерминизм» спорит с генеративностью</h4>
+      <p>Ты хочешь детерминированный 2.5, а рисует стохастический FLUX. Но ControlNet-условие — <em>мягкое</em>: оно смещает, а не гарантирует. Непроникновение, сохранение объёма, точные точки контакта из генеративного рендера не гарантируются — «связь принудительно удержит объект» это оптимизм, а не свойство диффузии.</p>
+      <p class="fix"><b>Обход:</b> либо жёсткие ограничения вне генератора (солвер/3D-состояние как источник истины, рендер лишь «одевает»), либо проверяющий цикл, отбраковывающий кадры с нарушением физики.</p>
+    </div>
+
+    <div class="risk">
+      <h4><span class="rn">R3</span> Накопление ошибок в длинном конвейере</h4>
+      <p>6+ обученных стадий, сцепленных через латентную шину: ошибка глубины на стадии 0 течёт вниз, а межстадийные интерфейсы надо делать взаимно-согласованными. Совместная тренировка такой цепочки недооценена — это большая системная работа, которой end-to-end-модели избегают по построению.</p>
+      <p class="fix"><b>Смягчение:</b> сквозное дообучение (end-to-end fine-tune) поверх модульной инициализации; жёсткие «контракты» на интерфейсах шины; ранняя проверка на 2–3 стадиях, а не на всех сразу.</p>
+    </div>
+
+    <div class="risk">
+      <h4><span class="rn">R4</span> «Шина данных» — самое несущее и наименее проработанное</h4>
+      <p>Единое латентное пространство, где сосуществуют текст, геометрия, ID <em>и</em> физика (масса, трение, тензоры давления), — это огромная research-проблема сама по себе. CLIP/VLM не кодируют физику; свести всё в один вектор, который каждая стадия читает и пишет когерентно, — гипотеза, а не данность. Именно на ней всё держится.</p>
+      <p class="fix"><b>Реалистичнее:</b> не один магический вектор, а типизированные каналы (гео-карты, ID-маски, физ-тензоры) + общий индекс по ID; сводить в общий эмбеддинг только там, где это доказуемо помогает.</p>
+    </div>
+
+    <div class="risk">
+      <h4><span class="rn">R5</span> «Кадр 1 = кадр 100» переоценено; тайком нужна 3D</h4>
+      <p>DINOv3-паспорт даёт стабильные признаки для <em>распознавания</em>, но не гарантирует, что генератор нарисует объект одинаково при большом повороте — это та самая 2D→3D-неоднозначность. Поэтому за настоящей новоракурсной консистентностью документ и тянется к 3DGS/FluSplat — а это уже частичная 3D-реконструкция, что противоречит установке «без полной 3D».</p>
+      <p class="fix"><b>Честнее:</b> признать 3D-нативное состояние объекта (tri-plane / feature-field / компактный сплат) как «структурированную ДНК» — оно и решает кросс-ракурс, и остаётся дешевле полной сцены с физдвижком.</p>
+    </div>
+
+    <div class="risk">
+      <h4><span class="rn">R6</span> Real-time × модульность — в противоречии</h4>
+      <p>Ты ссылаешься на playable-миры (Genie, Oasis) как на цель. Но они <em>end-to-end</em> именно ради скорости (Genie 3 — 24 fps 720p одной сетью). Тяжёлый многомодельный конвейер с отдельным физ-проходом и несколькими рендер-стадиями почти наверняка не real-time.</p>
+      <p class="fix"><b>Стратегия:</b> использовать модульный конвейер как <em>учителя и генератор данных</em>, а для playable — дистиллировать его в одну быструю студенческую модель (это же есть в твоей идее модульной дистилляции).</p>
+    </div>
+
+    <div class="risk">
+      <h4><span class="rn">R7</span> Провенанс второго документа</h4>
+      <p>Отчёт по FLUX/DINO похож на LLM-сгенерированный (упоминание «схемы Gemini», часть списка источников — твои же промпты, единые даты обращения). Хорошая новость: выборочная проверка показала, что ключевые методы <em>реальны</em>. Но конкретные числа (VRAM, метрики, размеры) стоит перепроверять по первоисточникам, а не принимать на веру.</p>
+      <p class="fix"><b>Гигиена:</b> держать отдельный «проверенный» список источников; не закладывать в план ни одного компонента, который не открыл своими руками (репозиторий/веса/бенч).</p>
+    </div>
+  </section>
+
+  <section id="frontier">
+    <h2 class="sec"><span class="n">04</span>Что делают лучшие лаборатории: три ставки</h2>
+    <p class="sub">Вся передовая по «консистентной физически-правильной сцене» раскладывается на три парадигмы. World-Gen — в третьей.</p>
+
+    <div class="lane"><div class="ll">1</div><div><h4>End-to-end мировые модели — физика эмерджентна</h4>
+      <p><span class="li">Genie 3</span> (DeepMind): одна авторегрессионная сеть, 24 fps 720p, консистентность и «память» ~минуты, <em>без явного 3D</em>; физика и постоянство объектов возникают сами. <span class="li">Sora 2</span> (OpenAI): видеодиффузия как «симулятор мира», физика лучше, но всё ещё нарушается. <span class="li">NVIDIA Cosmos</span> (world foundation models): учит физику на видео + синтетике для робото-ИИ. <span class="li">Decart Oasis</span>: real-time playable-мир одной сетью.</p></div></div>
+
+    <div class="lane"><div class="ll">2</div><div><h4>3D-нативное устойчивое состояние — консистентность по построению</h4>
+      <p><span class="li">World Labs «Marble»</span> (Fei-Fei Li): генерирует устойчивые исследуемые 3D-миры на Gaussian Splatting. Консистентность — свойство представления (объект <em>есть</em> в 3D), а не удача генерации. Слабее по динамике/интерактивной физике, но идеально держит геометрию и ракурс.</p></div></div>
+
+    <div class="lane"><div class="ll">3</div><div><h4>Физика-в-цикле / нейросимвол — корректность через солвер или структуру</h4>
+      <p><span class="li">PSIVG</span>, <span class="li">PhyCo</span>: реальный физсимулятор внутри генерации даёт корректные траектории. Сюда же — <span class="li">World-Gen</span>, но в варианте «ручная реология вместо солвера». Максимум контроля; корректность зависит от того, настоящий ли под капотом решатель.</p></div></div>
+
+    <table>
+      <thead><tr><th>Парадигма</th><th>Консистентность</th><th>Физика</th><th>Real-time</th><th>Контроль</th></tr></thead>
+      <tbody>
+        <tr class="bet"><td>1. End-to-end</td><td>эмерджентная память (~мин у Genie)</td><td>выучена, не гарантирована</td><td>да</td><td>низкий (промпт/действия)</td></tr>
+        <tr class="bet"><td>2. 3D-нативная</td><td>по построению (явный 3D)</td><td>ограниченная (статичные миры)</td><td>исследование — да</td><td>средний</td></tr>
+        <tr class="bet you"><td>3. Физика-в-цикле</td><td>через ID/структуру</td><td>реальный солвер (PSIVG) <b>или</b> ручная реология (WG)</td><td>нет (тяжело)</td><td>высокий</td></tr>
+      </tbody>
+    </table>
+    <p>Сквозной урок фронтира: <em>корректная физика не берётся из ручных правил</em>. Её либо выучивают на масштабе (ставка 1), либо получают от настоящего решателя в цикле (ставка 3, PSIVG). World-Gen сейчас — ставка 3 без решателя, и это ровно тот зазор, где «корректность» пока висит в воздухе.</p>
+  </section>
+
+  <section id="map">
+    <h2 class="sec"><span class="n">05</span>Где World-Gen на карте — и честная развилка</h2>
+    <p class="sub">Ты в ставке 3, но пытаешься убрать из неё солвер. Значит, надо выбрать полосу.</p>
+
+    <div class="lane"><div class="ll">A</div><div><h4>Настоящий (диф.) солвер в цикле</h4><p>PSIVG-стиль: физика становится корректной, но это тот самый физдвижок, который ты исключал. Честный путь к оси B.</p></div></div>
+    <div class="lane"><div class="ll">B</div><div><h4>Выучить динамику на массе симданных</h4><p>Нейро-физика/мировая модель в духе Cosmos: правдоподобие на масштабе, дёшево на инференсе, но <em>без гарантий</em> корректности.</p></div></div>
+    <div class="lane"><div class="ll">C</div><div><h4>Оставить ручную реологию — но переименовать</h4><p>Это арт-направляемое правдоподобие, а не физика. Отличный инструмент для «управляемого сюрреализма» — только не продавать его как корректность.</p></div></div>
+
+    <div class="callout warn">
+      <h3>Внутреннее противоречие, которое стоит снять</h3>
+      <p>Установка «без полной 3D и без физдвижка» сталкивается с тем, что за <em>консистентностью</em> конвейер тянется к 3DGS (FluSplat, стадия 5), а за <em>корректной физикой</em> фронтир тянется к солверу (PSIVG). Оба раза «запрещённый» инструмент возвращается. Разумнее не запрещать их, а <em>минимизировать</em>: 3D-нативное состояние объекта (компактный сплат/tri-plane) для консистентности и лёгкий солвер только для физически-критичных кадров.</p>
+    </div>
+  </section>
+
+  <section id="reco">
+    <h2 class="sec"><span class="n">06</span>Рекомендации к конечной цели</h2>
+    <p class="sub">Консистентная физически-правильная сцена достижима — но не из ручной реологии в одиночку.</p>
+
+    <p><span class="li">1. Разделить две оси и мерить их отдельно.</span> Консистентность (ось A) и физкорректность (ось B) — разные задачи с разными метриками. Сначала добей A (дёшево и проверяемо), B закладывай честно и отдельно.</p>
+    <p><span class="li">2. Прототипировать в порядке дешевизны.</span> Стадии 0–2 (камера + ID-паспорт + кросс-ракурс) — первыми: это тот же дешёвый MVP, что и в анализе «ДНК» (замороженный DINOv3 + адаптер в замороженный FLUX/DiT). Физику — вторым проходом.</p>
+    <p><span class="li">3. Сделать состояние объекта 3D-нативным.</span> Заменить «паспорт на 2D» на компактный 3D-код (tri-plane / feature-field / мини-сплат) — структурно решает консистентность по ракурсу (ставка 2), оставаясь дешевле полной сцены.</p>
+    <p><span class="li">4. Для корректной физики — реальный лёгкий солвер в цикле, точечно.</span> Не на каждый кадр, а на физически-критичные события (падение, столкновение, разрушение): PSIVG-петля даёт траектории, генератор их «одевает». Ручную реологию оставить для сюрреализма и быстрых черновиков.</p>
+    <p><span class="li">5. Помнить про real-time.</span> Модульный конвейер — это учитель и data-engine. Для playable-мира дистиллировать его в одну быструю модель (ставка 1), а не гонять весь конвейер в кадре.</p>
+
+    <div class="callout">
+      <h3>Минимальный эксперимент, который проверит спорную физику</h3>
+      <p>Взять один канонический контакт (нога в песке / падение мяча / вмятина) и сгенерировать его тремя способами: (а) чистый FLUX, (б) твой Этап 2.5 с ручными картами, (в) PSIVG-петля с настоящим солвером. Померить нарушение физики (человеческая оценка + метрика непроникновения/сохранения) и консистентность. Ответ на вопрос «стоит ли ручная реология свеч» получается за считанные дни — и сразу видно, где проходит граница между сюрреализмом и корректностью.</p>
+    </div>
+
+    <p class="quote">World-Gen — сильный директор сцены и отличный генератор данных, но пока спорный физик. Консистентность добывается 3D-нативным состоянием, корректная физика — солвером в цикле или масштабом; ручные правила Этапа 2.5 хороши для управляемого сюрреализма, а не для законов Ньютона. Раздели оси, удешеви консистентность первой, физику вставляй настоящую и точечно — и цель достижима.</p>
+  </section>
+
+  <footer>
+    <p style="margin-bottom:12px"><b>Критический разбор.</b> На вход — твои документы World-Gen и «FLUX.2 klein × DINOv3»; сверено с открытыми данными о фронтире и первоисточниками по заявленным методам (июль 2026). Ключевые компоненты подтверждены как реальные.</p>
+    <p class="src">Источники:
+      <a href="https://deepmind.google/blog/genie-3-a-new-frontier-for-world-models/">Genie 3 — Google DeepMind</a> ·
+      <a href="https://techcrunch.com/2025/11/12/fei-fei-lis-world-labs-speeds-up-the-world-model-race-with-marble-its-first-commercial-product/">World Labs «Marble» — TechCrunch</a> ·
+      <a href="https://arxiv.org/abs/2501.03575">NVIDIA Cosmos World Foundation Models</a> ·
+      <a href="https://openai.com/index/sora-2/">Sora 2 — OpenAI</a> ·
+      <a href="https://vcai.mpi-inf.mpg.de/projects/PSIVG/">PSIVG: Physical Simulator In-the-Loop Video Generation (CVPR 2026)</a> ·
+      <a href="https://bfl.ai/blog/flux-2">FLUX.2 — Black Forest Labs</a> ·
+      <a href="https://arxiv.org/abs/2508.10104">DINOv3 — Meta AI</a> ·
+      <a href="https://arxiv.org/abs/2604.20038">FluSplat</a> ·
+      <a href="https://arxiv.org/abs/2604.01761">Control-DINO</a> ·
+      <a href="https://github.com/black-forest-labs/Self-Flow">Self-Flow — Black Forest Labs</a> ·
+      <a href="https://oasis2.decart.ai/">Decart Oasis 2.0</a>
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>

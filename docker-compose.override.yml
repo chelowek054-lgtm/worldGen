@@ -1,0 +1,30 @@
+# docker-compose.override.yml — оверрайд для локальной разработки.
+# Подхватывается docker compose автоматически: `docker compose up` == dev-режим.
+# Проброс исходников через volumes + hot-reload, открытые порты сервисов.
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      target: dev
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      target: dev
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"

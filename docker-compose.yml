@@ -1,0 +1,71 @@
+# docker-compose.yml — базовая (production-like) конфигурация.
+# Для локальной разработки применяется поверх docker-compose.override.yml (подхватывается автоматически).
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: atelier_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-atelier}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atelier}
+      POSTGRES_DB: ${POSTGRES_DB:-atelier}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-atelier}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [backend]
+
+  redis:
+    image: redis:7-alpine
+    container_name: atelier_redis
+    restart: unless-stopped
+    networks: [backend]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: atelier_backend
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks: [backend, frontend]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: atelier_frontend
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - backend
+    networks: [frontend]
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: atelier_nginx
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks: [frontend]
+
+volumes:
+  pgdata:
+
+networks:
+  backend:
+  frontend:
