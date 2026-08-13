@@ -44,4 +44,32 @@
 - **Артефакты:** `engine/` (пакет `worldgen`, `scripts/reproduce.py`, `tests/`),
   `engine/README.md`.
 
-<!-- Следующая ожидаемая запись: 0.G — Go/No-Go фазы 0 -->
+### 2026-08-13 · 1.2a · PIVOT
+- **Контекст:** по запросу пользователя заведён каркас `engine/worldgen/dna/`
+  (ДНК-компрессор, задача 1.2) по аналогии со структурой pet-проекта OCR
+  ([docs/developers/ocr-pipeline-lessons.md](../developers/ocr-pipeline-lessons.md)) —
+  до прохождения гейта `0.G` и до наполнения золотого набора (0.1b) и мультивид-данных
+  (1.1). Формально это опережает дисциплину плана («каждая фаза открывается только
+  пройдя свой go/no-go»), но каркас не требует ни того, ни другого: тренировка идёт
+  на `SyntheticMultiViewDataset` (детерминированные шаблон+шум, без файлов) и
+  `RandomBackbone` (случайная проекция без сети/весов) — только проверка, что формы
+  тензоров, лоссы, чекпоинты и Hydra-конфиг исправны.
+- **Реализовано:** `backbone.py` (`FeatureBackbone` ABC + `RandomBackbone`/`Dinov3Backbone`
+  + `build_backbone` — та же фабрика, что и у `tracking/`), `model.py` (Perceiver-ресемплер,
+  N∈[4,16] токенов), `losses.py` (`info_nce_loss` + диагностика `identity_margin`),
+  `dataset.py` (`MultiViewPairDataset` по манифесту + `SyntheticMultiViewDataset`),
+  `trainer.py`, `predictor.py`, `checkpoints.py`; конфиги `configs/dna_config.yaml` +
+  `configs/backbone/{random,dinov3}.yaml`; скрипт `scripts/train_dna.py`; holder
+  `data/dna_train/`.
+- **Числа:** `pytest` 39/39 (было 11), `ruff` clean, `mypy` clean (кроме одной
+  предсуществовавшей ошибки типа `OmegaConf.to_container` в `reproduce.py`/`train_dna.py` —
+  не регрессия). Смоук `train_dna.py train.epochs=1` — `loss` и `identity_margin`
+  считаются и логируются (MLflow и `noop`).
+- **Вывод:** каркас 1.2 закрыт как `1.2a`; `1.2b` (обучение на реальном DINOv3 +
+  реальных данных) блокируется задачей `1.1`, как и раньше. `RandomBackbone`-прогоны
+  не доказывают view-инвариантность — это заглушка форм, а не эксперимент; реальная
+  Проверка ✅ шага 1.2 возможна только после `1.1` и `backbone=dinov3`.
+- **Артефакты:** `engine/worldgen/dna/`, `engine/configs/dna_config.yaml`,
+  `engine/configs/backbone/`, `engine/scripts/train_dna.py`, `engine/data/dna_train/`.
+
+<!-- Следующая ожидаемая запись: 0.G — Go/No-Go фазы 0 (или 1.1, если данные найдутся раньше) -->
