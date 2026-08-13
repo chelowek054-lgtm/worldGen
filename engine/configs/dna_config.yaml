@@ -1,0 +1,34 @@
+# Конфиг обучения ДНК-компрессора (задача 1.2). Один конфиг → один прогон.
+defaults:
+  - tracking: mlflow
+  - backbone: random
+  - _self_
+
+seed: 1234
+run_name: dna_smoke
+
+data:
+  # Путь к манифесту мультивид-объектов (задача 1.1). null → синтетический
+  # датасет (SyntheticMultiViewDataset) — проверка пайплайна без реальных данных.
+  manifest: null
+  batch_size: 8
+
+model:
+  dna_dim: 256
+  n_tokens: 8
+  n_layers: 2
+  n_heads: 8
+
+train:
+  epochs: 3
+  lr: 0.0001
+  weight_decay: 0.0001
+
+checkpoint:
+  path: runs/dna/best_model.pt
+
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: runs/hydra/${run_name}
