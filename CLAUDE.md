@@ -10,10 +10,11 @@
 
 Реализуется MVP из [docs/base-plans/Roadmap-MVP.md](docs/base-plans/Roadmap-MVP.md).
 **Перед началом работы прочитать [docs/base-plans/HANDOFF.md](docs/base-plans/HANDOFF.md)** —
-там состояние окружения, порядок чтения и список документов, которые устарели после
-смены парадигмы и при буквальном чтении уводят в сторону (в том числе
-`detailed-implementation-plan.md` и каркас `engine/worldgen/dna/`, который больше
-не является ядром).
+там состояние окружения, порядок чтения и первые действия.
+
+Документы прежней парадигмы вынесены в [docs/archive/](docs/archive/README.md) —
+руководством не являются. Единственное исключение живёт в коде: каркас
+`engine/worldgen/dna/` больше не ядро, а код retrieval-ключа; не развивать.
 
 ## Нестандартный стек
 
@@ -54,10 +55,13 @@ cd engine
   не объединять зависимости, не импортировать код `backend/` из `engine/` и наоборот.
 - Единый стиль линтинга для обоих Python-пакетов: `ruff`, line-length 100, py312,
   правила `E, F, I, UP, B` (см. `[tool.ruff]` в обоих `pyproject.toml`).
-- Прогресс `engine/` фиксируется по фазам с гейтами go/no-go — статус в
-  [docs/base-plans/STATUS.md](docs/base-plans/STATUS.md), решения и метрики гейтов —
-  в [docs/base-plans/decision-log.md](docs/base-plans/decision-log.md). Перед началом
-  новой фазы сверяться с этими файлами, а не только с кодом.
+- Прогресс фиксируется гейтами go/no-go: статусы решений — в
+  [docs/base-plans/Roadmap.md](docs/base-plans/Roadmap.md), шаги текущего среза — в
+  [docs/base-plans/Roadmap-MVP.md](docs/base-plans/Roadmap-MVP.md), результаты гейтов
+  с числами — в [docs/base-plans/decision-log.md](docs/base-plans/decision-log.md).
+  Сверяться с ними, а не только с кодом.
+- Сцена описывается данными, рендерер их потребляет: логики сцены внутри
+  рендер-скриптов быть не должно.
 - Артефакты прогонов ML-движка (`engine/runs/`, `mlruns/`) и вся `engine/data/**`
   не коммитятся в git — см. [engine/.gitignore](engine/.gitignore).
 - Docker Compose: `docker-compose.yml` — базовый (prod-like), `docker-compose.override.yml`

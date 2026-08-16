@@ -1,7 +1,7 @@
 # Мультивид-данные для ДНК-компрессора (holder)
 
 Read-only обучающие данные для контрастива view-инвариантности из
-[плана](../../../docs/base-plans/detailed-implementation-plan.md), задача **1.1**.
+[плана](../../../docs/archive/detailed-implementation-plan.md), задача **1.1**.
 Сами данные **не коммитятся** в git — версионируются через DVC, как и
 [`data/golden_set/`](../golden_set/README.md).
 

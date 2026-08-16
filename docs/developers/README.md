@@ -1,33 +1,64 @@
-# Документация для разработчиков
+# Разработка
 
-Онбординг, соглашения и практические гайды.
+Онбординг и конвенции. Что делать прямо сейчас — в
+[HANDOFF](../base-plans/HANDOFF.md).
 
-## Быстрый старт
+## Две части репозитория
+
+Репозиторий содержит два независимых Python-окружения; смешивать их нельзя.
+
+| Часть | Что это | Окружение |
+| ----- | ------- | --------- |
+| `engine/` | ML-движок и воркер: сборка сцены, рендер, перерисовка | свой `pyproject.toml`, venv в `engine/.venv` |
+| `backend/` + `frontend/` | Сервис сцены (граф, реестр, очередь) и редактор | свой `pyproject.toml`, Docker Compose |
+
+Роль веб-стека в архитектуре описана в
+[architecture, раздел 4](../architects/system/architecture.md#4-стек): `backend/`
+хранит граф сцены и реестр и держит очередь заданий, `frontend/` — редактор
+сцены, `engine/` эти задания исполняет.
+
+## Команды
+
+Движок (venv в `engine/`):
 
 ```bash
-cp .env.example .env
-make up          # поднять стек (dev, hot-reload)
-make migrate     # применить миграции
+cd engine
+.venv/Scripts/python -m pytest tests/ -q
+.venv/Scripts/ruff check .
+.venv/Scripts/mypy .
 ```
 
-- Frontend: http://localhost:3000
-- API (Swagger): http://localhost:8000/docs
-- Через nginx: http://localhost
+Веб-стек (через `make`):
 
-Список команд — `make help`.
+```bash
+make up          # поднять стек (dev, hot-reload)
+make migrate     # миграции
+make test-back   # pytest в контейнере
+make test-front  # vitest в контейнере
+make lint        # ruff + eslint
+```
 
-## Соглашения
+## Конвенции
 
-- **Backend:** линт/формат — `ruff`; типы — `mypy`; тесты — `pytest`. Слои: `api → services → models`.
-- **Frontend:** ESLint (`@nuxt/eslint`), строгий TypeScript, состояние — Pinia (`app/stores`).
-- **Ветки/коммиты:** trunk-based, Conventional Commits (`feat:`, `fix:`, `docs:`…).
-- **API:** версионируется через префикс `/api/v1`.
+- **Python (обе части):** `ruff`, line-length 100, py312, правила `E, F, I, UP, B`;
+  типы — `mypy`; тесты — `pytest`.
+- **Frontend:** ESLint (`@nuxt/eslint`), строгий TypeScript, состояние — Pinia.
+- **Коммиты:** Conventional Commits (`feat:`, `fix:`, `docs:`…), trunk-based.
+- **Воспроизводимость в движке:** один конфиг → один прогон → залогированные
+  метрики; seed фиксируется через `set_seed()`, конфиги — Hydra, трекинг — MLflow,
+  данные и веса — DVC.
+- **Сцена описывается данными, рендерер их потребляет.** Логики сцены внутри
+  рендер-скриптов быть не должно — иначе смена рендерера перестаёт быть правкой
+  одного модуля.
 
-## Разделы
+## Материалы
 
-- Онбординг нового разработчика.
-- Гайды по типовым задачам (добавить эндпоинт, страницу, миграцию).
-- Описание доменной модели и структуры кода.
-- [Уроки pet-проекта OCR (CRNN)](ocr-pipeline-lessons.md) — практические паттерны
-  ML-пайплайна (очистка данных, метрики, MLflow, confidence score), применимые к
-  развитию `engine/` в фазах 0.1–0.2.
+| Документ | О чём |
+| -------- | ----- |
+| [Уроки pet-проекта OCR](ocr-pipeline-lessons.md) | Практические паттерны ML-пайплайна: очистка данных, метрики, MLflow, мера уверенности, структура модулей. |
+
+## Что в `engine/` не является ядром
+
+`engine/worldgen/dna/` — каркас ДНК-компрессора, написанный до смены парадигмы.
+Понижен до кода retrieval-ключа и в текущем срезе не используется. Не развивать,
+пока не потребуется реестр ассетов — см. [HANDOFF](../base-plans/HANDOFF.md).

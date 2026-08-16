@@ -1,6 +1,6 @@
 # Золотой оценочный набор (holder)
 
-Read-only набор для регресс-проверок из [плана](../../../docs/base-plans/detailed-implementation-plan.md),
+Read-only набор для регресс-проверок из [плана](../../../docs/archive/detailed-implementation-plan.md),
 задача **0.1**. Сами данные **не коммитятся** в git — версионируются через DVC
 (`*.dvc`-указатели коммитятся, содержимое лежит в DVC-хранилище).
 

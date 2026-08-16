@@ -39,7 +39,7 @@ def identity_margin(anchor: torch.Tensor, positive: torch.Tensor) -> torch.Tenso
     """Диагностика ✅ шага 1.2: cos(anchor, positive) − cos(anchor, самый похожий негатив).
 
     Положительное и растущее значение = ДНК действительно различает объекты
-    (см. «Проверка ✅» шага 1.2 в detailed-implementation-plan.md).
+    (см. «Проверка ✅» шага 1.2 в docs/archive/detailed-implementation-plan.md).
     """
     anchor_n = F.normalize(anchor, dim=-1)
     positive_n = F.normalize(positive, dim=-1)
