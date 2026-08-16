@@ -1,38 +1,68 @@
 # worldGen
 
-Монорепозиторий проекта: **Nuxt 4 (TS)** фронтенд + **FastAPI** бэкенд, оркестрация через **Docker Compose**.
+Движок генерации изображений сцен, в которых персонажи и объекты **остаются
+собой** между кадрами, ракурсами и сюжетными репликами.
 
-## Структура
+Пользователь приносит своих героев и свой стиль; система отвечает за
+содержание — геометрию, композицию, идентичность. Ценность появляется там, где
+мир переиспользуется: те же персонажи в сотне кадров и в разных сюжетных ветках.
+Одиночную красивую иллюстрацию дешевле получить обычной диффузией.
+
+## Устройство
 
 ```
 worldGen/
-├── docker-compose.yml          # базовый (prod-like) стек
-├── docker-compose.override.yml # оверрайд для локальной разработки (hot-reload)
-├── .env.example                # шаблон переменных окружения
-├── Makefile                    # короткие команды (make up / down / migrate ...)
-├── frontend/                   # SPA/SSR приложение на Nuxt 4 + TypeScript
-├── backend/                    # REST API на FastAPI (async, SQLAlchemy, Alembic)
-├── docs/                       # документация по ролям (аналитики, разработчики, девопсы, архитекторы, QA, продукт)
-├── scripts/                    # вспомогательные скрипты (bootstrap, seed, backup)
-└── infra/                      # инфраструктурные конфиги (nginx, postgres init)
+├── engine/      # движок: сборка сцены, рендер, перерисовка (воркер)
+├── backend/     # сервис сцены: граф, реестр ассетов, очередь заданий (FastAPI)
+├── frontend/    # редактор сцены (Nuxt 4 + TS)
+├── docs/        # документация
+├── infra/       # nginx, инициализация Postgres
+└── scripts/     # служебные скрипты
 ```
 
-## Быстрый старт
+`engine/` и веб-стек — **раздельные Python-окружения**; зависимости не
+объединяются, код друг друга не импортирует. Связь — через API и очередь
+заданий.
+
+## С чего начать
+
+| Вопрос | Куда |
+| ------ | ---- |
+| **Что делается сейчас, как включиться** | [docs/base-plans/HANDOFF.md](docs/base-plans/HANDOFF.md) |
+| Как система устроена | [docs/architects/system/architecture.md](docs/architects/system/architecture.md) |
+| Что решено, а что открыто | [docs/base-plans/Roadmap.md](docs/base-plans/Roadmap.md) |
+| Вся документация | [docs/README.md](docs/README.md) |
+
+## Запуск
+
+Движок (venv в `engine/`, см. [engine/README.md](engine/README.md)):
 
 ```bash
-cp .env.example .env      # заполнить секреты
-make up                   # поднять весь стек в dev-режиме
-make migrate              # применить миграции БД
+cd engine
+python -m venv .venv
+.venv/Scripts/pip install -e .[dev]     # Windows; Linux/macOS — .venv/bin/pip
+.venv/Scripts/python -m pytest tests/ -q
 ```
 
-После запуска:
+Веб-стек (Docker Compose, см. [Makefile](Makefile)):
 
-| Сервис         | URL                        |
-| -------------- | -------------------------- |
-| Frontend (Nuxt)| http://localhost:3000      |
-| Backend (API)  | http://localhost:8000/docs |
-| Через nginx    | http://localhost           |
+```bash
+cp .env.example .env
+make up          # поднять стек (dev, hot-reload)
+make migrate     # применить миграции
+```
 
-## Документация
+| Сервис | URL |
+| ------ | --- |
+| Frontend | http://localhost:3000 |
+| API (Swagger) | http://localhost:8000/docs |
+| Через nginx | http://localhost |
 
-Начните с [docs/README.md](docs/README.md) — навигация по разделам для каждой роли.
+## Состояние
+
+Проект на стадии первого сквозного среза: проверяется, переживает ли
+идентичность персонажа перерисовку генератором. План среза —
+[Roadmap-MVP](docs/base-plans/Roadmap-MVP.md), шаги `S0`–`S7`.
+
+Веб-стек существует как каркас; его роль в архитектуре определена, но сервис
+сцены и редактор ещё не реализованы.
