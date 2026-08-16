@@ -3,9 +3,17 @@
 Монорепо из двух независимых частей:
 - **Веб-стек**: `frontend/` (Nuxt 4 + TS) + `backend/` (FastAPI, async) — CRUD-приложение,
   оркестрируется через Docker Compose.
-- **ML-движок**: `engine/` (PyTorch) — отдельный пакет `worldgen`, генерация миров,
-  развивается по фазам из [docs/base-plans/STATUS.md](docs/base-plans/STATUS.md).
+- **ML-движок**: `engine/` (PyTorch) — отдельный пакет `worldgen`, генерация миров.
   Не смешивать зависимости и код с веб-стеком.
+
+## Текущий фокус
+
+Реализуется MVP из [docs/base-plans/Roadmap-MVP.md](docs/base-plans/Roadmap-MVP.md).
+**Перед началом работы прочитать [docs/base-plans/HANDOFF.md](docs/base-plans/HANDOFF.md)** —
+там состояние окружения, порядок чтения и список документов, которые устарели после
+смены парадигмы и при буквальном чтении уводят в сторону (в том числе
+`detailed-implementation-plan.md` и каркас `engine/worldgen/dna/`, который больше
+не является ядром).
 
 ## Нестандартный стек
 
