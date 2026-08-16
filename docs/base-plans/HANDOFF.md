@@ -4,7 +4,7 @@
 репозитории **не верить**, и в каком состоянии окружение.
 
 - **Обновлён:** 2026-08-16
-- **Ветка:** `claude/claude-config-files-0da536` (git worktree), синхронизирована с `main`
+- **Ветка:** `claude/s0-roadmap-mvp-handoff-b2feb0` (git worktree)
 
 ---
 
@@ -66,10 +66,12 @@
 | Что | Состояние |
 | --- | --------- |
 | `engine/.venv` | **готов**: torch 2.13.0+cpu, hydra, mlflow, pytest, ruff, mypy |
-| Тесты | 39/39 проходят, `ruff` и `mypy` чисты |
-| **Blender** | **НЕ установлен** — прерогатива первого шага, см. 6 |
+| Тесты | 77/77 проходят, `ruff` чист |
+| `mypy` | **5 ошибок** в старом коде (`tests/test_dna_dataset.py`, `tests/test_tracking.py`, `scripts/train_dna.py`, `scripts/reproduce.py`) — были до среза MVP, новый код чист |
+| **Blender** | **5.1.1**, Steam-установка: `D:\SteamLibrary\steamapps\common\Blender\blender.exe`. Находится автоматически, переопределяется `WORLDGEN_BLENDER` |
+| **Ассет героя** | **нет файла**. Решение: VRoid Studio → VRM в `engine/data/assets/hero.glb` (см. [data/assets/README](../../engine/data/assets/README.md)) |
 | `gh` CLI | недоступен, PR из сессии не создать |
-| Python | 3.12, Windows |
+| Python | 3.12 (Windows); внутри Blender — свой 3.13 |
 
 Команды:
 
@@ -77,7 +79,18 @@
 cd engine
 .venv/Scripts/python -m pytest tests/ -q
 .venv/Scripts/ruff check .
+.venv/Scripts/python scripts/render_scene.py --scene configs/mvp/scene.proxy.json --all-cameras
 ```
+
+**Про Blender 5.x.** API отличается от 4.x в двух местах, на которые легко
+наступить: идентификатор движка — `BLENDER_EEVEE` (не `BLENDER_EEVEE_NEXT`), а
+multilayer EXR требует сперва `image_settings.media_type = "MULTI_LAYER_IMAGE"` и
+только потом `file_format = "OPEN_EXR_MULTILAYER"`.
+
+**Проверено на живом бинаре:** EEVEE headless отдаёт в один multilayer EXR
+`Combined`, `Depth.Z`, `Normal.XYZ` и `CryptoObject00/01/02` с манифестом имён
+объектов. Премиса S1 («Cryptomatte закрывает вопрос чистых масок») подтверждена в
+части наличия пассов; чистота масок на границах — проверка самого S1.
 
 **Git.** Работа идёт в worktree на ветке `claude/claude-config-files-0da536`.
 `main` занят основным worktree, поэтому слияние делается через временную ветку:
@@ -94,17 +107,25 @@ git fetch origin main && git branch merge-main origin/main && git checkout merge
 
 ## 6. Первые действия
 
-1. **Установить Blender** (решение пользователя — попросить, не ставить молча).
-   Нужна версия с Cryptomatte в EEVEE и рабочим headless-режимом.
-2. **Найти ассет для `S0`.** Cel-персонаж с ригом, glTF. Требование, которое
-   легко упустить: персонаж должен быть стилизованным, но **геометрически
-   честным** — уровня игрового или VTuber-персонажа. Модели, воспроизводящие
-   нарисованное аниме-лицо (глаза одного размера с любого ракурса, причёска не
-   в перспективе), в срез не годятся: они не сводятся между ракурсами, и мы
-   провалимся не на том, что проверяем.
-3. **Каркас `S1`** по раскладке из [Roadmap-MVP, раздел 8](Roadmap-MVP.md#8-где-это-живёт-в-коде).
+Blender установлен, каркас `S0` собран и работает на болванке. Осталось:
 
-Порядок 1→2 можно вести параллельно; `S1` без обоих не начать.
+1. **Положить героя в `engine/data/assets/hero.glb`.** Решение принято: VRoid
+   Studio → экспорт VRM. Требование, которое легко упустить: персонаж должен быть
+   стилизованным, но **геометрически честным** — уровня игрового или
+   VTuber-персонажа. Модели, воспроизводящие нарисованное аниме-лицо (глаза
+   одного размера с любого ракурса, причёска не в перспективе), в срез не
+   годятся: они не сводятся между ракурсами, и мы провалимся не на том, что
+   проверяем. Подробности и соглашение об осях —
+   [data/assets/README](../../engine/data/assets/README.md).
+2. **Закрыть `S0` на настоящем ассете:** прогнать три ракурса, поправить масштаб,
+   разворот и свет в [`configs/mvp/scene.json`](../../engine/configs/mvp/scene.json),
+   удалить болванку вместе с `scene.proxy.json`.
+3. **`S1`** — cel-шейдинг, контуры и вывод пассов в multilayer EXR поверх готового
+   каркаса `worldgen/render/`.
+
+`.vrm` пробуется штатным импортёром glTF (расширения VRM он игнорирует, геометрию
+и скелет берёт). Если конкретная модель не зайдёт — понадобится VRM-аддон, и тогда
+запуск должен идти без `--factory-startup` (параметр у `run_blender_script`).
 
 ## 7. Что фиксировать по ходу
 

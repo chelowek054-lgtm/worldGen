@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "name": "cel-anime-v1",
+  "_note": "Одна стилевая плоскость на весь MVP (Roadmap-MVP 1). Разнообразие уходит не в набор стилей, а внутрь шкалы leash — это строки матрицы из раздела 5. Числа поводка выставлены на глаз и уточняются по результату S2/S3.",
+
+  "presentation": {
+    "tone_steps": 3,
+    "outline_thickness": 0.004,
+    "style_reference": null
+  },
+
+  "palette": [
+    "#1b2230",
+    "#3d4a63",
+    "#7f8db0",
+    "#c8d3e8",
+    "#f2e6d8",
+    "#d9736b"
+  ],
+
+  "leash": {
+    "short": { "hero": 0.25, "background": 0.25 },
+    "medium": { "hero": 0.45, "background": 0.45 },
+    "long": { "hero": 0.7, "background": 0.7 }
+  }
+}

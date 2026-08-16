@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "name": "mvp-hero",
+  "_note": "Сцена MVP: один герой, земля, задник, трёхточечный свет. Три камеры — столбцы матрицы из Roadmap-MVP 5. Свет и кадрирование общие для всех ракурсов: между ячейками строки обязан меняться только азимут.",
+  "style_profile": "configs/mvp/style.json",
+
+  "assets": [
+    {
+      "id": "hero",
+      "path": "data/assets/hero.glb",
+      "is_hero": true,
+      "location": [0.0, 0.0, 0.0],
+      "rotation_euler_deg": [0.0, 0.0, 0.0],
+      "scale": 1.0
+    }
+  ],
+
+  "environment": {
+    "ground": { "enabled": true, "size": 12.0, "color": [0.50, 0.50, 0.55] },
+    "backdrop": { "enabled": true, "size": 12.0, "distance": 3.0, "color": [0.35, 0.42, 0.55] },
+    "world": { "color": [0.04, 0.05, 0.07], "strength": 1.0 }
+  },
+
+  "lights": [
+    {
+      "id": "key",
+      "type": "AREA",
+      "energy": 150.0,
+      "size": 2.0,
+      "color": [1.0, 0.96, 0.90],
+      "placement": {
+        "mode": "orbit",
+        "target": [0.0, 0.0, 1.0],
+        "azimuth_deg": -40.0,
+        "elevation_deg": 30.0,
+        "distance": 3.5
+      }
+    },
+    {
+      "id": "fill",
+      "type": "AREA",
+      "energy": 40.0,
+      "size": 3.0,
+      "color": [0.85, 0.90, 1.0],
+      "placement": {
+        "mode": "orbit",
+        "target": [0.0, 0.0, 1.0],
+        "azimuth_deg": 60.0,
+        "elevation_deg": 5.0,
+        "distance": 3.5
+      }
+    },
+    {
+      "id": "rim",
+      "type": "AREA",
+      "energy": 120.0,
+      "size": 1.0,
+      "color": [1.0, 0.98, 0.95],
+      "placement": {
+        "mode": "orbit",
+        "target": [0.0, 0.0, 1.0],
+        "azimuth_deg": 170.0,
+        "elevation_deg": 45.0,
+        "distance": 3.2
+      }
+    }
+  ],
+
+  "cameras": [
+    {
+      "id": "front",
+      "fov_deg": 35.0,
+      "placement": {
+        "mode": "orbit",
+        "target": [0.0, 0.0, 0.9],
+        "azimuth_deg": 0.0,
+        "elevation_deg": 6.0,
+        "distance": 3.2
+      }
+    },
+    {
+      "id": "three_quarter",
+      "fov_deg": 35.0,
+      "placement": {
+        "mode": "orbit",
+        "target": [0.0, 0.0, 0.9],
+        "azimuth_deg": 40.0,
+        "elevation_deg": 6.0,
+        "distance": 3.2
+      }
+    },
+    {
+      "id": "profile",
+      "fov_deg": 35.0,
+      "placement": {
+        "mode": "orbit",
+        "target": [0.0, 0.0, 0.9],
+        "azimuth_deg": 90.0,
+        "elevation_deg": 6.0,
+        "distance": 3.2
+      }
+    }
+  ],
+
+  "render": {
+    "width": 960,
+    "height": 1280,
+    "samples": 64,
+    "film_transparent": false,
+    "view_transform": "Standard"
+  }
+}
